@@ -16,7 +16,7 @@ import ReactDOM from 'react-dom';
 import { useDispatch } from "react-redux";
 import { setSearchPersona } from "../../store/entities/meta/actions";
 
-import css from './PersonaLabel.scss';
+import css from './PersonaLabel.module.scss';
 
 const PERSONAS = {
   scientist: "Scientist",

@@ -18,10 +18,18 @@ Parameters:
     Description: User email address
     Type: String
     AllowedPattern: (?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])
-  KendraEnabled:
-    Description: Amazon Kendra is added as an additional capability and can be used for exploring features such as Semantic Search, Adding FAQs and Access Control Lists.
+  SearchMode:
+    Description: DUS supports Amazon Elasticsearch for traditional search capbilities and Amazon Kendra  for features such as Semantic Search, Adding FAQs and User Context based filtering.
     Type: String
-    Default: "true"
+    Default: "AMAZON_ES_ONLY"
+    AllowedValues:
+      - "AMAZON_ES_ONLY"
+      - "AMAZON_KENDRA_ONLY"
+      - "AMAZON_ES_AND_KENDRA"
+  ComprehendMedicalEnabled:
+    Description: Comprehend Medical is added as an additional capability and can be used to extract medical information such as Medical Entities, ICD-10 and RX Norm onotlogies from uploaded documents.
+    Type: String
+    Default: "false"
     AllowedValues:
       - "true"
       - "false"
@@ -148,7 +156,7 @@ Resources:
                 - Name: SourceApp
               Configuration:
                 RepositoryName: !Ref CodeCommitRepository
-                BranchName: master
+                BranchName: main
                 PollForSourceChanges: false
         - Name: Deploy
           Actions:
@@ -205,7 +213,8 @@ Resources:
                 - sed -i -e "s/\"email\":.*/\"email\":\ \"$USER_EMAIL\",/g" "./source/package.json"
                 - sed -i -e "s/\"region\":.*/\"region\":\ \"$AWS_REGION\"/g" "./source/package.json"
                 - sed -i -e "s/\"isROMode\":.*/\"isROMode\":\ \"$READ_ONLY_MODE\",/g" "./source/package.json"
-                - sed -i -e "s/\"enableKendra\":.*/\"enableKendra\":\ \"$KENDRA_ENABLED\",/g" "./source/package.json"
+                - sed -i -e "s/\"searchMode\":.*/\"searchMode\":\ \"$SEARCH_MODE\",/g" "./source/package.json"
+                - sed -i -e "s/\"enableComprehendMedical\":.*/\"enableComprehendMedical\":\ \"$COMPREHEND_MEDICAL_ENABLED\",/g" "./source/package.json"
                 - sed -i -e "s/\"stackname\":.*/\"stackname\":\ \"$MAIN_STACK_NAME\",/g" "./source/package.json"
                 - sed -i -e "s/\"cicd\":.*/\"cicd\":\ \"true\",/g" "./source/package.json"
             build:
@@ -235,8 +244,10 @@ Resources:
             Value: !Ref Email
           - Name: SOLUTION_NAME
             Value: !FindInMap [SourceCode, Source, SolutionName]
-          - Name: KENDRA_ENABLED
-            Value: !Ref KendraEnabled
+          - Name: SEARCH_MODE
+            Value: !Ref SearchMode
+          - Name: COMPREHEND_MEDICAL_ENABLED
+            Value: !Ref ComprehendMedicalEnabled
           - Name: READ_ONLY_MODE
             Value: !Ref ReadOnlyMode
       Artifacts:
@@ -907,7 +918,7 @@ Resources:
           referenceType:
             - branch
           referenceName:
-            - master
+            - main
       Targets:
         - Arn:
             !Join [

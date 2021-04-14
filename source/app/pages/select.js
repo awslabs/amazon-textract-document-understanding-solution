@@ -20,7 +20,7 @@ import FileUpload from '../components/FileUpload/FileUpload'
 import Button from '../components/Button/Button'
 import getConfig from 'next/config'
 
-import css from './select.scss'
+import css from './select.module.scss'
 import ContextModal from '../components/ContextModal/ContextModal'
 import ModalContext from '../components/ModalContext/ModalContext'
 import SampleCollections from '../components/SampleCollections/SampleCollections'

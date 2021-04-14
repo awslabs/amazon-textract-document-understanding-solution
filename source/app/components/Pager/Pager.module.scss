@@ -34,12 +34,17 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
+  color: #000;
 
   svg {
     display: inline-block;
     margin: 0 1rem;
     cursor: pointer;
     outline: 0;
+    
+    g {
+      stroke: #000;      
+    }
 
     &:focus g,
     &:hover g {

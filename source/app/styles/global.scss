@@ -21,7 +21,6 @@ main {
 // DEFAULT TYPE STYLES
 // =================================================================================================
 html {
-  font-family: $font-stack-primary;
   font-size: $base-font-size * 1px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -30,8 +29,6 @@ html {
 body {
   @include type-body-primary();
   overflow-x: hidden;
-  background-color: color(gray, 80);
-  color: #fff;
   -webkit-overflow-scrolling: touch;
 }
 

@@ -17,7 +17,7 @@ import LinkWithClickHandler from "../LinkWithClickHandler/LinkWithClickHandler";
 
 import KendraHighlightedText from "../KendraHighlightedText/KendraHighlightedText";
 
-import styles from "./KendraResultTitle.scss";
+import styles from "./KendraResultTitle.module.scss";
 import { makeDocumentLink } from "../../utils/link-generators";
 
 export default function KendraResultTitle({ result, submitFeedback }) {

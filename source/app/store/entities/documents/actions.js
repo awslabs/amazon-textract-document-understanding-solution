@@ -24,9 +24,14 @@ import {
   FETCH_DOCUMENTS,
   FETCH_DOCUMENT,
   REDACT_DOCUMENT,
-  HIGHLIGHT_DOCUMENT
+  CLEAR_REDACTION,
+  HIGHLIGHT_DOCUMENT,
+  SAVE_REDACTIONS_STARTED,
+  REDACTIONS_SAVED,
 } from "../../../constants/action-types";
 import { documentsSchema, documentSchema } from "./data";
+import { ENABLE_COMPREHEND_MEDICAL } from '../../../constants/configs'
+import { normalizeRedactionResponse, getRedactionsDto } from "../../../utils/redaction";
 
 const lensNextToken = lensPath(["data", "nextToken"]);
 const lensDocumentsTotal = lensPath(["data", "Total"]);
@@ -126,15 +131,18 @@ export const fetchSingleDocument = createAction(
 );
 
 /**
- * Get document from TextractDemoTextractAPI
+ * Get document from TextractDemoTextractAPI and combine with redactions
  */
 export const fetchDocument = createAction(FETCH_DOCUMENT, async documentid => {
+  const session = await Auth.currentSession()
+  const token = session.getIdToken().getJwtToken()
+
+  const headers = {
+    Authorization: `Bearer ${token}`
+  }
+
   const response = await API.get("TextractDemoTextractAPI", "document", {
-    headers: {
-      Authorization: `Bearer ${(await Auth.currentSession())
-        .getIdToken()
-        .getJwtToken()}`
-    },
+    headers,
     response: true,
     queryStringParameters: {
       documentid
@@ -156,13 +164,20 @@ export const fetchDocument = createAction(FETCH_DOCUMENT, async documentid => {
   
   
   // Get a pre-signed URL for the original document upload
-  const [documentData, searchablePdfData] = await Promise.all([
+  const [documentData, searchablePdfData, redactionsResponse] = await Promise.all([
     Storage.get(documentPublicSubPath, {
       bucket: bucketName,
       download: true
     }),
     Storage.get(`${resultDirectory}/${fileNameWithoutExtension}-searchable.pdf`, {
       download: true
+    }),
+    API.get("TextractDemoTextractAPI", "redaction", {
+      headers,
+      response: true,
+      queryStringParameters: {
+        documentId: documentid
+      }
     })
   ]);
 
@@ -177,24 +192,26 @@ export const fetchDocument = createAction(FETCH_DOCUMENT, async documentid => {
   const s3Response = await Storage.get(textractResponsePath, {
     download: true
   });
-  const textractResponse = JSON.parse(
-    s3Response.Body ? s3Response.Body.toString() : null
-  );
+  const s3ResponseText = await s3Response.Body?.text()
+  const textractResponse = JSON.parse(s3ResponseText);
 
-// Get the raw comprehend medical response data from a json file on S3
- const s3ComprehendMedicalResponse = await Storage.get(comprehendMedicalResponsePath, {
-  download: true
-});
-const comprehendMedicalRespone = JSON.parse(
-  s3ComprehendMedicalResponse.Body ? s3ComprehendMedicalResponse.Body.toString() : null
-);
-// Get the raw comprehend response data from a json file on S3
-const s3ComprehendResponse = await Storage.get(comprehendResponsePath, {
-  download: true
-});
-const comprehendRespone = JSON.parse(
-  s3ComprehendResponse.Body ? s3ComprehendResponse.Body.toString() : null
-);
+  // Get the raw comprehend medical response data from a json file on S3
+  let comprehendMedicalRespone = null;
+  if(ENABLE_COMPREHEND_MEDICAL){
+    const s3ComprehendMedicalResponse = await Storage.get(comprehendMedicalResponsePath, {
+      download: true
+    });
+    const s3ComprehendMedicalResponseText = await s3ComprehendMedicalResponse.Body?.text()
+    comprehendMedicalRespone = JSON.parse(s3ComprehendMedicalResponseText);
+  }
+  // Get the raw comprehend response data from a json file on S3
+  const s3ComprehendResponse = await Storage.get(comprehendResponsePath, {
+    download: true
+  });
+  const s3ComprehendResponseText = await s3ComprehendResponse.Body?.text()
+  const comprehendRespone = JSON.parse(s3ComprehendResponseText);
+
+  const redactions = normalizeRedactionResponse(redactionsResponse.data.redactedItems)
 
   return normalize(
     {
@@ -206,7 +223,8 @@ const comprehendRespone = JSON.parse(
       textractFetchedAt: Date.now(),
       comprehendMedicalRespone,
       comprehendRespone,
-      resultDirectory
+      resultDirectory,
+      redactions,
     },
     documentSchema
   ).entities;
@@ -254,6 +272,21 @@ export const addRedactions = createAction(
   }
 );
 
+export const clearRedaction = createAction(
+  CLEAR_REDACTION,
+  (documentId, pageNumber, redactions, redactionId) => {
+    const newRedactions = {...redactions[pageNumber]};
+
+    delete newRedactions[redactionId];
+
+    return {
+        documentId,
+        pageNumber,
+        redactions: newRedactions,
+      }
+  }
+);
+
 export const addHighlights = createAction(
   HIGHLIGHT_DOCUMENT,
   
@@ -289,3 +322,38 @@ export const clearHighlights = createAction(HIGHLIGHT_DOCUMENT, documentId => {
     documentSchema
   ).entities;
 });
+
+export const saveRedactions = (documentId, redactions) => {
+  return async (dispatch) => {
+    const session = await Auth.currentSession()
+    const token = session.getIdToken().getJwtToken()
+      
+    const headers = {
+      Authorization: `Bearer ${token}`
+    }
+    
+    dispatch(saveRedactionsStarted())
+    
+    try {
+      await API.post("TextractDemoTextractAPI", "redaction", {
+        headers,
+        response: true,
+        queryStringParameters: {
+          documentId
+        },
+        body: {
+          uuid: documentId,
+          headers: [],
+          footers: [],
+          redactedItems: getRedactionsDto(redactions)
+        }
+      });
+    } finally {
+      dispatch(redactionsSaved())
+    }
+  }
+}
+
+
+const saveRedactionsStarted = createAction(SAVE_REDACTIONS_STARTED)
+const redactionsSaved = createAction(REDACTIONS_SAVED)

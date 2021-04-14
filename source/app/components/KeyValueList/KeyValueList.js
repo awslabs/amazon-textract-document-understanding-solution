@@ -17,7 +17,7 @@ import cs from "classnames";
 
 import Button from "../../components/Button/Button";
 
-import css from "./KeyValueList.scss";
+import css from "./KeyValueList.module.scss";
 
 export default function KeyValueList({
   kvPairs,
@@ -31,23 +31,12 @@ export default function KeyValueList({
   onRedactAll,
   onDownload,
 }) {
-  const container = useRef();
-
-  useEffect(() => {
-    if (visible && container.current) {
-      const firstOnThisPage = container.current.querySelector(
-        `.${css.onThisPage}`
-      );
-      if (firstOnThisPage) firstOnThisPage.scrollIntoView();
-    }
-  }, [currentPageNumber, visible]);
-
   if (!kvPairs.length && visible) {
     return <p className={cs(css.noKv)}>No Key-Value Pairs detected</p>;
   }
 
   return (
-    <div className={cs(css.kvList, visible && css.visible)} ref={container}>
+    <div className={cs(css.kvList, visible && css.visible)}>
       <ul>
         <h4>Key-Value Pairs : {kvPairs.length || 0} Found</h4>
         {groupWith((a, b) => a.pageNumber === b.pageNumber)(kvPairs).map(

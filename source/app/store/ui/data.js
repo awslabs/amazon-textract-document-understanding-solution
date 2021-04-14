@@ -13,10 +13,11 @@
  *********************************************************************************************************************/
 
 import { lensPath } from 'ramda'
+import { ENABLE_ELASTICSEARCH , ENABLE_KENDRA } from '../../constants/configs'
 
 export default {
   selectedTrack: 'search',
-  selectedSearch: 'es',
+  selectedSearch: (ENABLE_ELASTICSEARCH && ENABLE_KENDRA)? "both": ENABLE_KENDRA ? "kendra" : "es",
   headerProps: {},
 }
 

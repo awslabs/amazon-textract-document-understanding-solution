@@ -16,7 +16,7 @@ import React from 'react'
 import classNames from 'classnames'
 import PropTypes from 'prop-types'
 
-import css from './Loading.scss'
+import css from './Loading.module.scss'
 
 Loading.propTypes = {
   className: PropTypes.string,

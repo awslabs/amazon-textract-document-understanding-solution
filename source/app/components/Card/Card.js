@@ -16,7 +16,7 @@ import React, { Fragment } from 'react'
 import classNames from 'classnames'
 import PropTypes from 'prop-types'
 
-import css from './Card.scss'
+import css from './Card.module.scss'
 
 export const CARD_PALETTES = ['blue', 'black', 'teal', 'purple']
 export const CARD_VOLUMES = ['loud', 'conversational', 'quiet']

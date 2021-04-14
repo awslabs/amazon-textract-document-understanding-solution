@@ -16,7 +16,7 @@ import React, { useCallback, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import Webcam from 'react-webcam'
 
-import css from './CameraCapture.scss'
+import css from './CameraCapture.module.scss'
 import Button from '../Button/Button'
 
 const videoConstraints = {

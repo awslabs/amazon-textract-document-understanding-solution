@@ -19,26 +19,6 @@
   background: color(gray, 95);
 }
 
-// Search Bar
-.searchBarWrapper {
-  width: span(8);
-  margin: 0 auto;
-
-  @include media-grid(8) {
-    width: span(6, $grid-8col);
-  }
-
-  @include media-grid(4) {
-    width: 100%;
-  }
-}
-
-.downloadButtons {
-  > * + * {
-    margin-left: rem(10);
-  }
-}
-
 .tabSourceViewer {
   flex: 1;
   margin: 0 auto;
@@ -56,6 +36,7 @@
   flex-direction: row;
   overflow: hidden;
   position: relative;
+  background: #fff;
 }
 
 .tabWrapper {
@@ -63,15 +44,6 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-}
-
-.searchBar {
-  flex: 1;
-  // margin-right: rem(20);
-
-  + * {
-    margin-left: rem(20);
-  }
 }
 
 .searchBarWrapper {
@@ -106,7 +78,7 @@
 
   &.visible {
     opacity: 1;
-    flex: 0 0 30%;
+    flex: 1;
 
   }
 

@@ -16,7 +16,7 @@ import React, { useState } from 'react'
 import classNames from 'classnames'
 import PropTypes from 'prop-types'
 
-import css from './FeatureTooltip.scss'
+import css from './FeatureTooltip.module.scss'
 
 FeatureTooltip.propTypes = {
   className: PropTypes.string,
@@ -33,7 +33,7 @@ export default function FeatureTooltip({ className, description, title }) {
   return (
     <div className={tooltipClassNames}>
       <img
-        src="/static/images/icon_feature.svg"
+        src="/images/icon_feature.svg"
         onClick={() => setVisible(isVisible => !isVisible)}
       />
 

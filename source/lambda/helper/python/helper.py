@@ -123,12 +123,13 @@ class S3Helper:
             else:
                 hasMoreContent = False
 
-            for doc in listObjectsResponse['Contents']:
-                docName = doc['Key']
-                docExt = FileHelper.getFileExtension(docName)
-                docExtLower = docExt.lower()
-                if(docExtLower in allowedFileTypes):
-                    files.append(docName)
+            if 'Contents' in listObjectsResponse:
+                for doc in listObjectsResponse['Contents']:
+                    docName = doc['Key']
+                    docExt = FileHelper.getFileExtension(docName)
+                    docExtLower = docExt.lower()
+                    if(docExtLower in allowedFileTypes):
+                        files.append(docName)
 
         return files
 

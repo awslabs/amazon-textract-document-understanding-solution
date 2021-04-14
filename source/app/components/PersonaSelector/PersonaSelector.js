@@ -27,7 +27,7 @@ import {
 } from "../../store/entities/meta/actions";
 
 
-import css from "./PersonaSelector.scss";
+import css from "./PersonaSelector.module.scss";
 import PersonaInfoModal from "../PersonaInfoModal/PersonaInfoModal";
 
 function PersonaSelector({ dispatch, searchQuery, searchPersona }) {

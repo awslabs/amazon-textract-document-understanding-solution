@@ -31,19 +31,19 @@ export default {
       id: "expense.png",
       object: "public/samples/Misc/expense.png",
       title: "Expense Report",
-      previewImage: "/static/images/sample-previews/expense.png"
+      previewImage: "/images/sample-previews/expense.png"
     },
     employment: {
       id: "employmentapp.pdf",
       object: "public/samples/Research/employmentapp.png",
       title: "Employment App",
-      previewImage: "/static/images/sample-previews/employmentapp.png"
+      previewImage: "/images/sample-previews/employmentapp.png"
     },
     management: {
       id: "management.png",
       object: "public/samples/Misc/management.png",
       title: "Management Report",
-      previewImage: "/static/images/sample-previews/management.png"
+      previewImage: "/images/sample-previews/management.png"
     }
   },
 
@@ -51,7 +51,7 @@ export default {
     finance: {
       id: "finance",
       title: "Finance",
-      previewImage: "/static/images/sample-previews/Lacey city bonds.png",
+      previewImage: "/images/sample-previews/Lacey city bonds.png",
       objects: [
         "public/samples/Finance/Lacey city bonds.png",
         "public/samples/Finance/Spokane accounting.png",
@@ -62,7 +62,7 @@ export default {
     medical: {
       id: "medical",
       title: "Medical",
-      previewImage: "/static/images/sample-previews/history.png",
+      previewImage: "/images/sample-previews/history.png",
       objects: [
         "public/samples/Medical/HIPAA Release Form.pdf",
         "public/samples/Medical/Medical History Form.png",

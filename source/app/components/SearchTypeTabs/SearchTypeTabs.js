@@ -18,7 +18,7 @@ import cs from "classnames";
 import { getSelectedSearch } from "../../store/ui/selectors";
 import { setSelectedSearch } from "../../store/ui/actions";
 
-import styles from "./SearchTypeTabs.scss";
+import styles from "./SearchTypeTabs.module.scss";
 
 function SearchTypeTabs({ selectedSearch, setSelectedSearch }) {
   const selectES = useCallback(() => {

@@ -17,7 +17,7 @@ import { groupWith } from 'ramda'
 import cs from 'classnames'
 
 import Button from '../Button/Button'
-import css from './DocumentPreview.scss'
+import css from './DocumentPreview.module.scss'
 
 
 export default function DocumentPreview({
@@ -25,18 +25,9 @@ export default function DocumentPreview({
   visible,
   track,
   document
-}) {
-  const container = useRef()
-
-  useEffect(() => {
-    if (visible && container.current) {
-      const firstOnThisPage = container.current.querySelector(`.${css.onThisPage}`)
-      if (firstOnThisPage) firstOnThisPage.scrollIntoView()
-    }
-  }, [ visible])
-        
+}) {        
   return (
-     <div className={cs(css.entityList, visible && css.visible)} ref={container}>
+     <div className={cs(css.entityList, visible && css.visible)}>
       <ul>
         <h4>File Details</h4>
           <Fragment key={document.documentName}>

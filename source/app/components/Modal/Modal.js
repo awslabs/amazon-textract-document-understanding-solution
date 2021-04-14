@@ -14,7 +14,7 @@
 import React, { useCallback } from "react";
 import ReactDOM from "react-dom";
 
-import css from "./Modal.scss";
+import css from "./Modal.module.scss";
 
 export default function Modal({ title, children, onRequestClose }) {
   const stopProp = useCallback((e) => {

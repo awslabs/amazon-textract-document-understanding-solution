@@ -16,7 +16,7 @@ import React, { useMemo, useEffect } from 'react'
 
 import Button from '../Button/Button'
 
-import css from './TableDownloader.scss'
+import css from './TableDownloader.module.scss'
 
 export default function TableDownloader({ table, rows }) {
   const tableBlob = useMemo(() => {

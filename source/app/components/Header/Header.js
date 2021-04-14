@@ -25,7 +25,7 @@ import LinkWithClickHandler from '../LinkWithClickHandler/LinkWithClickHandler'
 
 import { getHeaderProps } from '../../store/ui/selectors'
 
-import css from './Header.scss'
+import css from './Header.module.scss'
 import { clearSearchQuery, setSearchPersona } from '../../store/entities/meta/actions'
 
 Header.propTypes = {
@@ -53,7 +53,7 @@ function Header({ showNavigation, backButton, dispatch }) {
         <a className={cs(css.mobileMenuLink, menuOpen && css.open)} onClick={toggleMenu} />
         <Link href="/home">
           <a className={css.logoLink}>
-            <img className={css.logo} src="/static/images/DUS_DEMO_logo_WhiteBG.svg" alt="AWS" />
+            <img className={css.logo} src="/images/DUS_DEMO_logo_WhiteBG.svg" alt="AWS" />
           </a>
         </Link>
 

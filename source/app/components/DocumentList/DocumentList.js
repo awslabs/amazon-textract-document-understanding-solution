@@ -20,7 +20,7 @@ import classNames from 'classnames'
 import Loading from '../Loading/Loading'
 import DocumentListItem from '../DocumentListItem/DocumentListItem'
 
-import css from './DocumentList.scss'
+import css from './DocumentList.module.scss'
 
 DocumentList.propTypes = {
   className: PropTypes.string,

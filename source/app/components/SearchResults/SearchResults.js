@@ -23,7 +23,7 @@ import Loading from '../../components/Loading/Loading'
 import { MIN_SEARCH_QUERY_LENGTH } from '../../constants/configs'
 import { makeDocumentLink } from '../../utils/link-generators'
 
-import css from './SearchResults.scss'
+import css from './SearchResults.module.scss'
 
 SearchResults.propTypes = {
   className: PropTypes.string,

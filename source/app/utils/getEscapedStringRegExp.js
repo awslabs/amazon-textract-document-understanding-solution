@@ -1,0 +1,1 @@
+export const getEscapedStringRegExp = (str) => new RegExp(str.replace(/[-[\]{}()*+?.,\\^$|]/g, '\\$&'))

@@ -16,7 +16,7 @@ import React, { forwardRef } from 'react'
 import classNames from 'classnames'
 import PropTypes from 'prop-types'
 
-import css from './FormInput.scss'
+import css from './FormInput.module.scss'
 
 export const INPUT_TYPES = ['text', 'textarea', 'checkbox', 'radio', 'search', 'password']
 

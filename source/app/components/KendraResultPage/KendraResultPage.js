@@ -20,7 +20,7 @@ import KendraDocumentResults from "../../components/KendraDocumentResults/Kendra
 
 import { submitKendraFeedback } from "../../store/entities/searchResults/actions";
 
-import styles from "./KendraResultPage.scss";
+import styles from "./KendraResultPage.module.scss";
 import KendraFAQs from "../KendraFAQs/KendraFAQs";
 import PersonaLabel from "../PersonaLabel/PersonaLabel";
 

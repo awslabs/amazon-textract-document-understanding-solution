@@ -14,7 +14,7 @@
 import React from "react";
 
 import KendraResultFeedback from "../KendraResultFeedback/KendraResultFeedback";
-import styles from "./KendraResultFooter.scss";
+import styles from "./KendraResultFooter.module.scss";
 
 export default function KendraResultFooter({ result, submitFeedback }) {
   return (

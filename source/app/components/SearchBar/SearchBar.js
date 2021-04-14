@@ -39,7 +39,7 @@ import {
 
 import { MIN_SEARCH_QUERY_LENGTH } from "../../constants/configs";
 
-import css from "./SearchBar.scss";
+import css from "./SearchBar.module.scss";
 
 SearchBar.propTypes = {
   className: PropTypes.string,

@@ -133,7 +133,7 @@ exports.handler = async (event, context) => {
           }
           if (!parentCommitId) {
             codeCommitParams = {
-              branchName: "master" /* required */,
+              branchName: "main" /* required */,
               repositoryName: _repo /* required */,
               putFiles: filesList,
               authorName: "document-understanding-pipeline",
@@ -141,7 +141,7 @@ exports.handler = async (event, context) => {
             };
           } else if (parentCommitId) {
             codeCommitParams = {
-              branchName: "master" /* required */,
+              branchName: "main" /* required */,
               repositoryName: _repo /* required */,
               parentCommitId: parentCommitId,
               putFiles: filesList,
@@ -269,17 +269,17 @@ exports.handler = async (event, context) => {
           : {
               deploy: false,
             };
-      // get last commit on master
+      // get last commit on main
       try {
         const _data = await codecommit
           .getBranch({
-            branchName: "master",
+            branchName: "main",
             repositoryName: process.env.CODECOMMIT_REPO,
           })
           .promise();
         const _parentCommitId = _data.branch.commitId;
         const _params = {
-          branchName: "master",
+          branchName: "main",
           repositoryName: process.env.CODECOMMIT_REPO,
           fileContent: JSON.stringify(manifest, null, 2),
           filePath: "deployment/custom-deployment/cdk-manifest.json",

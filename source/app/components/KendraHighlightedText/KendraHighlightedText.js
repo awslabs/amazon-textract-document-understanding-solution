@@ -13,7 +13,7 @@
 
 import React, { Fragment } from "react";
 
-import styles from "./KendraHighlightedText.scss";
+import styles from "./KendraHighlightedText.module.scss";
 
 function unionSortedHighlights(highlights) {
   if (!highlights) {

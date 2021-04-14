@@ -23,7 +23,7 @@ import PersonaSelector from "../PersonaSelector/PersonaSelector";
 
 import { MIN_SEARCH_QUERY_LENGTH } from "../../constants/configs";
 
-import css from "./KendraResults.scss";
+import css from "./KendraResults.module.scss";
 import { submitKendraFeedback } from "../../store/entities/searchResults/actions";
 import { dismissWalkthrough } from "../../store/ui/actions";
 import { getHasDismissedWalkthrough } from "../../store/ui/selectors";

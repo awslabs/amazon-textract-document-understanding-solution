@@ -14,7 +14,7 @@
 import React, { useCallback, useState } from "react";
 import Floater from "react-floater";
 
-import css from "./TooltipButton.scss";
+import css from "./TooltipButton.module.scss";
 import { createPortal } from "react-dom";
 
 export default function TooltipButton({ tooltip, children }) {

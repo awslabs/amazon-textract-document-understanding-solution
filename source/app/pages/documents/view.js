@@ -12,29 +12,32 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import React, { Fragment, useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { connect } from 'react-redux'
-import { reject, either, isNil, isEmpty, groupWith } from 'ramda'
+import { connect, useSelector } from 'react-redux'
 import queryString from 'query-string'
 import cs from 'classnames'
 import { Storage } from 'aws-amplify'
+import { useRouter }  from 'next/router'
+
+
 
 import Loading from '../../components/Loading/Loading'
 import DocumentViewer from '../../components/DocumentViewer/DocumentViewer'
-import DocumentSearchBar from '../../components/DocumentSearchBar/DocumentSearchBar'
 import Tabs from '../../components/Tabs/Tabs'
+import DocumentActionBar from '../../components/DocumentActionBar/DocumentActionBar'
 
 import {
   fetchDocument,
   addRedactions,
+  clearRedaction,
   clearRedactions,
   addHighlights,
-  clearHighlights
+  clearHighlights,
+  saveRedactions
 
 } from '../../store/entities/documents/actions'
 import { getDocumentById } from '../../store/entities/documents/selectors'
-import { setHeaderProps , setSelectedTrack} from '../../store/ui/actions'
 import { getSelectedTrackId } from '../../store/ui/selectors'
 import { setCurrentPageNumber, setDocumentSearchQuery } from '../../store/entities/meta/actions'
 import { getDocumentSearchQuery, getCurrentPageNumber } from '../../store/entities/meta/selectors'
@@ -50,6 +53,8 @@ import {
   getDocumentTables,
 } from '../../utils/document'
 
+import { getEscapedStringRegExp } from '../../utils/getEscapedStringRegExp'
+
 import {
   COMPREHEND_MEDICAL_SERVICE,
   COMPREHEND_SERVICE
@@ -57,13 +62,14 @@ import {
 
 
 
-import css from './view.scss'
-import Button from '../../components/Button/Button'
+import css from './view.module.scss'
 import KeyValueList from '../../components/KeyValueList/KeyValueList'
 import RawTextLines from '../../components/RawTextLines/RawTextLines'
 import EntitiesCheckbox from '../../components/EntitiesCheckbox/EntitiesCheckbox'
 import DocumentPreview from '../../components/DocumentPreview/DocumentPreview'
 import TableResults from '../../components/TableResults/TableResults'
+import { ENABLE_COMPREHEND_MEDICAL } from '../../constants/configs'
+
 
 Document.propTypes = {
   currentPageNumber: PropTypes.number,
@@ -92,13 +98,51 @@ Document.getInitialProps = function({ query, store }) {
   return props
 }
 
+const tabItems = [
+  { id: 'search', title: 'Preview' },
+  { id: 'text', title: 'Raw Text' },
+  { id: 'kv', title: `Key-Value Pairs` },
+  { id: 'tables', title: `Tables` },
+  { id: 'entities', title: `Entities` },
+]
+
+if (ENABLE_COMPREHEND_MEDICAL) tabItems.push({ id: 'medical_entities', title: `Medical Entities` })
+
 function Document({ currentPageNumber, dispatch, id, document, pageTitle, searchQuery, track }) {
   // TODO: Ensure id corresponds to a valid resource, otherwise 404
   // e.g. /documents/export and /documents/view should fail
   const isDocumentFetched = !!document.textractResponse && !!document.comprehendMedicalResponse && !!document.comprehendResponse
   const { status } = useFetchDocument(dispatch, id, isDocumentFetched)
   const pageCount = getDocumentPageCount(document)
-  const { documentName, documentURL, searchablePdfURL } = document
+
+  const router = useRouter()
+  const areUnsavedRedactions = useSelector((state) => state.entities.areUnsavedRedactions);
+  const { documentId, redactions } = document
+
+  // prompt the user if they try and leave with unsaved changes
+  useEffect(() => {
+    if (!areUnsavedRedactions) return;
+
+    const handleWindowClose = (e) => {
+      e.preventDefault();
+      e.returnValue = 'Are you sure you would like to leave this page? Unsaved changes will be lost.'
+      return e.returnValue;
+    };
+
+    const handleBrowseAway = () => {
+      if (!window.confirm('You have unsaved changes. Would you like to save them before you leave?')) return;
+
+      dispatch(saveRedactions(documentId, redactions))
+    };
+
+    window.addEventListener('beforeunload', handleWindowClose);
+    router.events.on('routeChangeStart', handleBrowseAway);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleWindowClose);
+      router.events.off('routeChangeStart', handleBrowseAway);
+    };
+  }, [areUnsavedRedactions, documentId, redactions]);
 
 
   // Reset currentPageNumber on mount
@@ -115,7 +159,7 @@ function Document({ currentPageNumber, dispatch, id, document, pageTitle, search
 
   // Set search results data
   const wordsMatchingSearch = useMemo(() => {
-    return getPageWordsBySearch(document, currentPageNumber, searchQuery)
+    return searchQuery ? getPageWordsBySearch(document, currentPageNumber, [new RegExp(getEscapedStringRegExp(searchQuery), 'i')]) : []
   }, [document, currentPageNumber, searchQuery])
 
   const docData = useMemo(() => {
@@ -123,7 +167,7 @@ function Document({ currentPageNumber, dispatch, id, document, pageTitle, search
     const tables = getDocumentTables(document)
     const lines = getDocumentLines(document)
     const entities = getDocumentEntityPairs(document, COMPREHEND_SERVICE)
-    const medicalEntities = getDocumentEntityPairs(document, COMPREHEND_MEDICAL_SERVICE)
+    const medicalEntities = ENABLE_COMPREHEND_MEDICAL? getDocumentEntityPairs(document, COMPREHEND_MEDICAL_SERVICE) : []
     return { pairs, tables, lines, entities , medicalEntities }
     // eslint-disable-next-line
 
@@ -142,7 +186,7 @@ function Document({ currentPageNumber, dispatch, id, document, pageTitle, search
 
   const [tab, selectTab] = useState('search')
 
-  const [trackTab, selectTrack] = useState('search')
+  const isComplianceTrack = track === 'redaction'
 
   const downloadKV = useCallback(async () => {
     const { resultDirectory } = document
@@ -195,12 +239,6 @@ function Document({ currentPageNumber, dispatch, id, document, pageTitle, search
     [currentPageNumber, dispatch, id]
   )
 
-
-
-  const clearReds = useCallback(() => {
-    dispatch(clearRedactions(id))
-  }, [dispatch, id])
-
   const redactAllValues = useCallback(
     async (bbox, pageNumber = currentPageNumber) => {
        dispatch(addRedactions(id, currentPageNumber, pageData.pairs.map(p => p.valueBoundingBox)))
@@ -212,46 +250,6 @@ function Document({ currentPageNumber, dispatch, id, document, pageTitle, search
   }, [currentPageNumber, dispatch, id])
 
   const contentRef = useRef()
-
-  const downloadRedacted = useCallback(async () => {
-    const theThing = contentRef.current.querySelector('canvas,img')
-
-    const cnv = window.document.createElement('canvas')
-    // TODO the resolution is just based on the viewport for pdfs. It shouldn't be.
-    cnv.width = theThing.naturalWidth || theThing.width
-    cnv.height = theThing.naturalHeight || theThing.height
-
-    const ctx = cnv.getContext('2d')
-
-    ctx.drawImage(theThing, 0, 0)
-
-    ctx.fillStyle = '#000'
-    const x = val => val * cnv.width
-    const y = val => val * cnv.height
-    const margin = 2
-
-    Object.values(document.redactions[currentPageNumber]).forEach(red => {
-      ctx.fillRect(
-        x(red.Left) - margin,
-        y(red.Top) - margin,
-        x(red.Width) + 2 * margin,
-        y(red.Height) + 2 * margin
-      )
-    })
-
-    cnv.toBlob(blob => {
-      const a = window.document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.target = '_blank'
-      a.style.display = 'none'
-      a.download = document.objectName
-        .split('/')
-        .pop()
-        .replace(/\.[^.]+$/, '-REDACTED.png')
-      window.document.body.appendChild(a)
-      a.click()
-    }, 'image/png')
-  }, [currentPageNumber, document.objectName, document.redactions])
 
   const pagePairsAsMarks = useMemo(() => {
     return pageData.pairs.reduce((acc, { id, keyBoundingBox, valueBoundingBox }) => {
@@ -293,8 +291,6 @@ function Document({ currentPageNumber, dispatch, id, document, pageTitle, search
 
   const setHighlightedLine = useCallback(() => {}, [])
 
-
-
   return (
     <div className={css.document}>
       {status === 'pending' && <Loading />}
@@ -307,40 +303,13 @@ function Document({ currentPageNumber, dispatch, id, document, pageTitle, search
               selected={tab}
               track={track}
               onSelectTab={selectTab}
-              items={[
-                { id: 'search', title: 'Preview' },
-                { id: 'text', title: 'Raw Text' },
-                { id: 'kv', title: `Key-Value Pairs` },
-                { id: 'tables', title: `Tables` },
-                { id: 'entities', title: `Entities` },
-                { id: 'medical_entities', title: `Medical Entities` },
-              ]}
+              items={tabItems}
             />
 
-
-            {track === 'redaction' &&
-            document.redactions &&
-            Object.keys(document.redactions).length ? (
-              <div className={css.downloadButtons}>
-                <Button inverted onClick={clearReds}>
-                  Clear Redaction
-                </Button>
-                <Button className={css.downloadRedacted} onClick={downloadRedacted}>
-                ⬇ Redacted Doc
-                </Button>
-              </div>
-            ) : null}
-
-
-
-
-              <div>
-
+            <div>
               <Tabs
-              isTrackTab={true}
-              selected={trackTab}
+              isTrackTab
               track={track}
-              onSelectTab={selectTrack}
               items={[
                 { id: 'searchTrack', title: 'Discovery'},
                 { id: 'complianceTrack', title: 'Compliance'},
@@ -349,44 +318,52 @@ function Document({ currentPageNumber, dispatch, id, document, pageTitle, search
             />
             </div>
           </div>
-          <div className={cs(css.searchBarWrapper, tab === 'search' && css.visible)}>
-            <DocumentSearchBar className={css.searchBar} placeholder="Search current document…" />
-            {track === 'redaction' ? <Button onClick={redactMatches}>Redact matches</Button> : null}
-          </div>
+
           <div className={css.content} ref={contentRef}>
-            <DocumentViewer
-              className={cs(
-                css.tabSourceViewer,
-                tab === 'kv' && css.withKv,
-                tab === 'entities' && css.withEv,
-                tab === 'medical_entities' && css.withEv,
-                tab === 'text' && css.withText
-              )}
-              document={document}
-              pageCount={pageCount}
-              redactions={(document.redactions || {})[currentPageNumber]}
-              marks={
-                tab === 'search'
-                  ? wordsMatchingSearch
-                  : tab === 'text'
-                  ? pageLinesAsMarks
-                  : tab === 'kv'
-                  ? pagePairsAsMarks
-                  : tab === 'entities'
-                  ? (document.highlights || [])
-                  : tab === 'medical_entities'
-                  ? (document.highlights || [])
-                  : []
+            <div>
+              <DocumentActionBar document={document} isComplianceTrack={isComplianceTrack} redactMatches={redactMatches} />
+
+              <DocumentViewer
+                className={cs(
+                  css.tabSourceViewer,
+                  tab === 'kv' && css.withKv,
+                  tab === 'entities' && css.withEv,
+                  tab === 'medical_entities' && css.withEv,
+                  tab === 'text' && css.withText
+                )
               }
-              tables={tab === 'tables' && pageData.tables}
-              highlightedMark={highlightedKv}
-            />
+                document={document}
+                pageCount={pageCount}
+                redactions={(document.redactions || {})[currentPageNumber]}
+                onRedactionClick={(redactionId) => dispatch(clearRedaction(document.documentId, currentPageNumber, document.redactions, redactionId))}
+                onMarkClick={(redaction) => dispatch(addRedactions(document.documentId, currentPageNumber, [redaction]))}
+                marks={
+                  [
+                    ...wordsMatchingSearch,
+                    ...tab === 'text'
+                      ? pageLinesAsMarks
+                      : tab === 'kv'
+                      ? pagePairsAsMarks
+                      : tab === 'entities'
+                      ? (document.highlights || [])
+                      : tab === 'medical_entities'
+                      ? (document.highlights || [])
+                      : []
+                  ]
+                }
+                tables={tab === 'tables' && pageData.tables}
+                highlightedMark={highlightedKv}
+                isComplianceTrack={isComplianceTrack}
+                redactMatches={redactMatches}
+              />
+            </div>
 
             <div
               className={cs(
                 css.sidebar,
                 (tab === 'kv' || tab === 'text' || tab === 'entities' || tab ==='medical_entities' || tab === 'search' ||tab === 'text'||tab === 'tables') && css.visible
-              )}
+              )
+            }
             >
               <KeyValueList
                 kvPairs={docData.pairs}
@@ -418,45 +395,46 @@ function Document({ currentPageNumber, dispatch, id, document, pageTitle, search
               />
 
               <EntitiesCheckbox
-                 entities={docData.entities}
-                 pageCount={pageCount}
-                 currentPageNumber={currentPageNumber}
-                 showRedaction={track === 'redaction'}
-                 onHighlight={highlightEntities}
-                 onSwitchPage={switchPage}
-                 onRedact={redactEntityMatches}
-                 onRedactAll={redactAllValues}
-                 onDownload={downloadKV}
-                 visible={tab === 'entities'}
-                 comprehendService={COMPREHEND_SERVICE}
-                 onDownloadPrimary = {downloadEntities}
-                 onDownloadSecondary = {null}
-                 document = {document}
+                entities={docData.entities}
+                pageCount={pageCount}
+                currentPageNumber={currentPageNumber}
+                showRedaction={track === 'redaction'}
+                onHighlight={highlightEntities}
+                onSwitchPage={switchPage}
+                onRedact={redactEntityMatches}
+                onRedactAll={redactAllValues}
+                onDownload={downloadKV}
+                visible={tab === 'entities'}
+                comprehendService={COMPREHEND_SERVICE}
+                onDownloadPrimary = {downloadEntities}
+                onDownloadSecondary = {null}
+                document = {document}
               />
 
-              <EntitiesCheckbox
-                 entities={docData.medicalEntities}
-                 pageCount={pageCount}
-                 currentPageNumber={currentPageNumber}
-                 showRedaction={track === 'redaction'}
-                 onHighlight={highlightEntities}
-                 onSwitchPage={switchPage}
-                 onRedact={redactEntityMatches}
-                 onRedactAll={redactAllValues}
-                 onDownloadPrimary={downloadMedicalEntities}
-                 onDownloadSecondary = {downloadMedicalICD10Ontologies}
-                 visible={tab === 'medical_entities'}
-                 comprehendService={COMPREHEND_MEDICAL_SERVICE}
-                 document = {document}
-              />
+              { ENABLE_COMPREHEND_MEDICAL &&
+               <EntitiesCheckbox
+                entities={docData.medicalEntities}
+                pageCount={pageCount}
+                currentPageNumber={currentPageNumber}
+                showRedaction={track === 'redaction'}
+                onHighlight={highlightEntities}
+                onSwitchPage={switchPage}
+                onRedact={redactEntityMatches}
+                onRedactAll={redactAllValues}
+                onDownloadPrimary={downloadMedicalEntities}
+                onDownloadSecondary = {downloadMedicalICD10Ontologies}
+                visible={tab === 'medical_entities'}
+                comprehendService={COMPREHEND_MEDICAL_SERVICE}
+                document = {document}
+              /> }
 
               <TableResults
-                 tables={docData.tables}
-                 pageCount={pageCount}
-                 currentPageNumber={currentPageNumber}
-                 onSwitchPage={switchPage}
-                 visible={tab === 'tables'}
-                 document = {document}
+                tables={docData.tables}
+                pageCount={pageCount}
+                currentPageNumber={currentPageNumber}
+                onSwitchPage={switchPage}
+                visible={tab === 'tables'}
+                document = {document}
               />
             </div>
           </div>

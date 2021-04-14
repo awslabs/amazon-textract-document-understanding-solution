@@ -17,7 +17,7 @@ import { getTracks } from "../../store/entities/tracks/selectors";
 
 import Modal from "../Modal/Modal";
 import Button from "../Button/Button";
-import css from "./TrackInfoModal.scss";
+import css from "./TrackInfoModal.module.scss";
 
 function TrackInfoModal({ trackName, onNavigateToTrack, onClose, track }) {
   const descriptionParagraphs = (track.longDescription || "")

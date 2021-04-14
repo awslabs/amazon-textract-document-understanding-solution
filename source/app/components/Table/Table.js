@@ -18,7 +18,7 @@ import PropTypes from 'prop-types'
 
 import Highlight from '../Highlight/Highlight'
 
-import css from './Table.scss'
+import css from './Table.module.scss'
 
 Table.propTypes = {
   className: PropTypes.string,

@@ -14,7 +14,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import classNames from "classnames";
-import css from "./ContextModal.scss";
+import css from "./ContextModal.module.scss";
 
 Modal.propTypes = {
   children: PropTypes.node.isRequired,

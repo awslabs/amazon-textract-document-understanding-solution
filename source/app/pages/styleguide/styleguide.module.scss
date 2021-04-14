@@ -1,9 +1,5 @@
 @import '../../styles/shared/index';
 
-section {
-  margin: 0 0 8em;
-}
-
 .colors {
   padding: 0;
   margin: 0 -1%;
@@ -41,7 +37,7 @@ section {
 // Generate class names for each color. Only for use in the styleguide.
 @each $palette, $tones in $palettes {
   @each $tone, $color in $tones {
-    .color-#{$palette}-#{$tone} {
+    .color-#{"" + $palette}-#{$tone} {
       background: $color;
     }
   }

@@ -27,7 +27,7 @@ import Tabs from '../../components/Tabs/Tabs'
 
 import { searchResults } from '../../constants/test-data'
 
-import css from './styleguide.scss'
+import css from './styleguide.module.scss'
 
 Styleguide.getInitialProps = function() {
   return {
@@ -473,21 +473,21 @@ $button-border-color: color(blue);
         <h3>With Icons</h3>
         <Card
           palette="blue"
-          icon={<img src="/static/images/icon_cloud-search.svg" />}
+          icon={<img src="/images/icon_cloud-search.svg" />}
           title="Conduct a search"
           subtitle="Find keys, values and words across the documents."
         />
         <hr />
         <Card
           palette="teal"
-          icon={<img src="/static/images/icon_redact.svg" />}
+          icon={<img src="/images/icon_redact.svg" />}
           title="Make redactions"
           subtitle="Redact values (names, SS#s etc) across these documents."
         />
         <hr />
         <Card
           palette="purple"
-          icon={<img src="/static/images/icon_workflow.svg" />}
+          icon={<img src="/images/icon_workflow.svg" />}
           title="Open a document"
           subtitle="Chose a document on the left to see how it was formatted."
         />

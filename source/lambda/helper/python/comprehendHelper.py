@@ -353,12 +353,15 @@ class ComprehendHelper:
     #   documentPath:               path of the document i.e. "public/1581983617022/premera.pdf/bb2186ec-51e0-11ea-a3c3-2e0ec40645f6/"
     #   maxPages:                   max number of pages to process for the document, counted from page 1. Suggested to limit
     #                               that number to 200 pages or so.
+    #   isComprehendEnabled:        flag that indicates whether or not to extract comprehend medical entities in the document. The flag value
+    #                               can be set during deployment.
     #
 
     def processComprehend(self,
                           bucket,
                           textractResponseLocation,
                           comprehendOutputPath,
+                          isComprehendMedicalEnabled,
                           maxPages=200):
 
 
@@ -415,37 +418,38 @@ class ComprehendHelper:
             x.start()
             threads.append(x)
 
-            # comprehendMedicalEntities is shared among threads
-            medicalEntitiesMutex = threading.Lock()
+            if(isComprehendMedicalEnabled):
+                # comprehendMedicalEntities is shared among threads
+                medicalEntitiesMutex = threading.Lock()
 
-            # ComprehendMedical
-            for index in range(0, pagesToProcess):
+                # ComprehendMedical
+                for index in range(0, pagesToProcess):
 
-                # Comprehend Medical can only handle one page at a time synchronously. The SDK handles
-                # throttling by the service.
-                x = threading.Thread(target=self.comprehendMedicalDetectEntitiesSync,
-                                     args=(rawPages,
-                                           pageStartIndex + index,
-                                           comprehendMedicalEntities,
-                                           medicalEntitiesMutex))
-                x.start()
-                threads.append(x)
+                    # Comprehend Medical can only handle one page at a time synchronously. The SDK handles
+                    # throttling by the service.
+                    x = threading.Thread(target=self.comprehendMedicalDetectEntitiesSync,
+                                        args=(rawPages,
+                                            pageStartIndex + index,
+                                            comprehendMedicalEntities,
+                                            medicalEntitiesMutex))
+                    x.start()
+                    threads.append(x)
 
-            # comprehendMedicalEntities is shared among threads
-            medicalICD10Mutex = threading.Lock()
+                # comprehendMedicalEntities is shared among threads
+                medicalICD10Mutex = threading.Lock()
 
-            # ComprehendMedical
-            for index in range(0, pagesToProcess):
+                # ComprehendMedical
+                for index in range(0, pagesToProcess):
 
-                # Comprehend Medical can only handle one page at a time synchronously. The SDK handles
-                # throttling by the service.
-                x = threading.Thread(target=self.comprehendMedicalDetectICD10Sync,
-                                     args=(rawPages,
-                                           pageStartIndex + index,
-                                           comprehendMedicalICD10,
-                                           medicalICD10Mutex))
-                x.start()
-                threads.append(x)
+                    # Comprehend Medical can only handle one page at a time synchronously. The SDK handles
+                    # throttling by the service.
+                    x = threading.Thread(target=self.comprehendMedicalDetectICD10Sync,
+                                        args=(rawPages,
+                                            pageStartIndex + index,
+                                            comprehendMedicalICD10,
+                                            medicalICD10Mutex))
+                    x.start()
+                    threads.append(x)
 
             # wait on all threads to finish their work
             for index, thread in enumerate(threads):
@@ -454,10 +458,16 @@ class ComprehendHelper:
             print("All threads joined...")
 
             # check success of threads
-            for i in range(pageStartIndex, pagesToProcess):
-                if (comprehendEntities[pageStartIndex + i] == None) or (comprehendMedicalEntities[pageStartIndex + i] == None):
-                    print("Page failed to process" + str(i))
-                    return False
+            if(isComprehendMedicalEnabled):
+                for i in range(pageStartIndex, pagesToProcess):
+                    if (comprehendEntities[pageStartIndex + i] == None) or (comprehendMedicalEntities[pageStartIndex + i] == None):
+                        print("Page failed to process" + str(i))
+                        return False
+            else:
+                for i in range(pageStartIndex, pagesToProcess):
+                    if (comprehendEntities[pageStartIndex + i] == None):
+                        print("Page failed to process" + str(i))
+                        return False
 
             # increment the number of pages processed for the next batch
             pagesProcessed += pagesToProcess
@@ -467,19 +477,20 @@ class ComprehendHelper:
                                        numOfPages,
                                        bucket,
                                        comprehendOutputPath)
-                                  
-        # process comprehend medical data, create the entities result file in S3
-        comprehendMedicalEntities = self.processAndReturnComprehendMedicalEntities(comprehendMedicalEntities,
-                                              numOfPages,
-                                              bucket,
-                                              comprehendOutputPath)
-        # final list of comprehend and comprehend medical entities to be indexed
-        processedComprehendData.update(comprehendMedicalEntities)
 
-        # process comprehend medical data, create the ICD10 result file in S3
-        self.processComprehendMedicalICD10(comprehendMedicalICD10,
-                                           numOfPages,
-                                           bucket,
-                                           comprehendOutputPath)
+        if(isComprehendMedicalEnabled):
+            # process comprehend medical data, create the entities result file in S3
+            comprehendMedicalEntities = self.processAndReturnComprehendMedicalEntities(comprehendMedicalEntities,
+                                                numOfPages,
+                                                bucket,
+                                                comprehendOutputPath)
+            # final list of comprehend and comprehend medical entities to be indexed
+            processedComprehendData.update(comprehendMedicalEntities)
+
+            # process comprehend medical data, create the ICD10 result file in S3
+            self.processComprehendMedicalICD10(comprehendMedicalICD10,
+                                            numOfPages,
+                                            bucket,
+                                            comprehendOutputPath)
 
         return processedComprehendData

@@ -18,7 +18,7 @@ import cs from 'classnames'
 
 import Button from '../Button/Button'
 
-import css from './RawTextLines.scss'
+import css from './RawTextLines.module.scss'
 
 export default function RawTextLines({
   lines,
@@ -28,21 +28,12 @@ export default function RawTextLines({
   onSwitchPage,
   onHighlight,
 }) {
-  const container = useRef()
-
-  useEffect(() => {
-    if (visible && container.current) {
-      const firstOnThisPage = container.current.querySelector(`.${css.onThisPage}`)
-      if (firstOnThisPage) firstOnThisPage.scrollIntoView()
-    }
-  }, [currentPageNumber, visible])
-
   if (!lines.length) {
     return <p className={css.empty}>No Key-Value Pairs detected</p>
   }
 
   return (
-    <div className={cs(css.lineList, visible && css.visible)} ref={container}>
+    <div className={cs(css.lineList, visible && css.visible)}>
       <ul>
         {groupWith((a, b) => a.pageNumber === b.pageNumber)(lines).map((pageLines, i) => (
           <Fragment key={pageLines[0].pageNumber}>

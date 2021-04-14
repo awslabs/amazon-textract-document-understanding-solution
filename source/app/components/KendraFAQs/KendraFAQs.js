@@ -15,7 +15,7 @@ import React from "react";
 import KendraFAQItem from "../KendraFAQItem/KendraFAQItem";
 import TooltipButton from "../TooltipButton/TooltipButton";
 
-import css from "./KendraFAQs.scss";
+import css from "./KendraFAQs.module.scss";
 
 export default function KendraFAQs({ results, submitFeedback }) {
   if (!results.length) return null;
@@ -39,7 +39,7 @@ export default function KendraFAQs({ results, submitFeedback }) {
             }
           >
             <a>
-              <img src="/static/images/icon_tip.svg" />
+              <img src="/images/icon_tip.svg" />
               More info
             </a>
           </TooltipButton>

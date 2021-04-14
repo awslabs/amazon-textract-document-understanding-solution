@@ -18,7 +18,7 @@ import PropTypes from 'prop-types'
 import { useDispatch } from 'react-redux'
 import {  setSelectedTrack} from '../../store/ui/actions'
 
-import css from './Tabs.scss'
+import css from './Tabs.module.scss'
 
 Tabs.propTypes = {
   children: PropTypes.node,
@@ -41,7 +41,7 @@ export default function Tabs({ children,track, selected, className, items, isTra
   function handleTabClick(e) {
     e.preventDefault()
     const id = e.target.getAttribute('data-id')
-    onSelectTab(id)
+    onSelectTab?.(id)
     if(id=='searchTrack'){dispatch(setSelectedTrack('search'));}
     if(id=='complianceTrack')dispatch(setSelectedTrack('redaction'))
     if(id=='workflowTrack')dispatch(setSelectedTrack('workflow'))

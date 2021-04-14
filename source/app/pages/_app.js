@@ -19,13 +19,15 @@ import Head from "next/head";
 import Router from "next/router";
 import Amplify, { Auth } from "aws-amplify";
 import { times, reject, isNil } from "ramda";
-import { Provider } from "react-redux";
+import { Provider, useDispatch } from "react-redux";
 import withRedux from "next-redux-wrapper";
+import {ChakraProvider, extendTheme} from '@chakra-ui/react'
 
 import initStore from "../store/store";
 import Header from "../components/Header/Header";
 
 import { setSelectedTrack, dismissWalkthrough } from "../store/ui/actions";
+import { fetchGlobals } from "../store/entities/actions";
 
 import "../styles/global.scss";
 import css from "./app.scss";
@@ -65,17 +67,21 @@ Amplify.configure({
   }
 });
 
-// This is a bit of a hack to ensure styles reload on client side route changes.
-// See: https://github.com/zeit/next-plugins/issues/282#issuecomment-480740246
-if (process.env.NODE_ENV !== "production") {
-  Router.events.on("routeChangeComplete", () => {
-    const path = "/_next/static/css/styles.chunk.css";
-    const chunksSelector = `link[href*="${path}"]`;
-    const chunksNodes = document.querySelectorAll(chunksSelector);
-    const timestamp = new Date().valueOf();
-    chunksNodes[0].href = `${path}?${timestamp}`;
-  });
-}
+const theme = extendTheme({
+  config: {
+    initialColorMode: 'dark'
+  },
+  styles: {
+    global: {
+      body: {
+        background: '#3b4550',
+        color: '#fff',
+        fontFamily: `"Amazon Ember", system, -apple-system, BlinkMacSystemFont, sans-serif`
+      }
+    }
+  }
+
+})
 
 class AppLayout extends App {
   static async getInitialProps({ Component, ctx }) {
@@ -94,9 +100,10 @@ class AppLayout extends App {
     // This allows you to hard refresh a page and maintain some state
     if (localStorage) {
       const { store } = this.props;
+
       const cachedTrack = localStorage.getItem("track");
       if (cachedTrack) store.dispatch(setSelectedTrack(cachedTrack));
-
+      
       const previouslyDismissedWalkthrough = localStorage.getItem("dismissedWalkthrough");
       if (previouslyDismissedWalkthrough) store.dispatch(dismissWalkthrough());
     }
@@ -109,42 +116,44 @@ class AppLayout extends App {
     // Don't render the app unless the user is logged in or this is a public route.
     return (
       <Provider store={store}>
-        <Head>
-          <title>{pageTitle ? `${pageTitle} | DUS ` : `DUS`}</title>
-          <link
-            rel="icon"
-            type="image/ico"
-            href="/static/images/favicon.ico"
-          />
-          <link
-            rel="shortcut icon"
-            type="image/ico"
-            href="/static/images/favicon.ico"
-          />
-          <link
-            rel="apple-touch-icon"
-            sizes="57x57"
-            href="/static/images/touch-icon-iphone-114-smile.png"
-          />
-          <link
-            rel="apple-touch-icon"
-            sizes="72x72"
-            href="/static/images/touch-icon-ipad-144-smile.png"
-          />
-          <link
-            rel="apple-touch-icon"
-            sizes="114x114"
-            href="/static/images/touch-icon-iphone-114-smile.png"
-          />
-          <link
-            rel="apple-touch-icon"
-            sizes="144x144"
-            href="/static/images/touch-icon-ipad-144-smile.png"
-          />
-        </Head>
-        <Page pathname={pathname} pageProps={pageProps}>
-          <Component {...pageProps} />
-        </Page>
+        <ChakraProvider resetCSS={false} theme={theme}>
+          <Head>
+            <title>{pageTitle ? `${pageTitle} | DUS ` : `DUS`}</title>
+            <link
+              rel="icon"
+              type="image/ico"
+              href="/images/favicon.ico"
+            />
+            <link
+              rel="shortcut icon"
+              type="image/ico"
+              href="/images/favicon.ico"
+            />
+            <link
+              rel="apple-touch-icon"
+              sizes="57x57"
+              href="/images/touch-icon-iphone-114-smile.png"
+            />
+            <link
+              rel="apple-touch-icon"
+              sizes="72x72"
+              href="/images/touch-icon-ipad-144-smile.png"
+            />
+            <link
+              rel="apple-touch-icon"
+              sizes="114x114"
+              href="/images/touch-icon-iphone-114-smile.png"
+            />
+            <link
+              rel="apple-touch-icon"
+              sizes="144x144"
+              href="/images/touch-icon-ipad-144-smile.png"
+            />
+          </Head>
+          <Page pathname={pathname} pageProps={pageProps}>
+            <Component {...pageProps} />
+          </Page>
+          </ChakraProvider>
       </Provider>
     );
   }
@@ -153,6 +162,7 @@ class AppLayout extends App {
 function Page({ children, pageProps, pathname }) {
   const { showNavigation, backButton, pageTitle: heading } = pageProps;
   const showGrid = useGridOverlay();
+  const dispatch = useDispatch()
 
   // All routes are protected by default. We whitelist public routes.
   // Authorization does not occur on public routes.
@@ -191,6 +201,10 @@ function Page({ children, pageProps, pathname }) {
         !isLoginRoute && Router.push("/");
       });
   }, [isLoginRoute, isPublicRoute]);
+
+  useEffect(() => {
+    if (isLoggedIn === true) dispatch(fetchGlobals());
+  }, [isLoggedIn])
 
   return (
     shouldRenderApp && (

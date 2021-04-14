@@ -38,6 +38,8 @@ import {
   COMPREHEND_SERVICE
 } from './dus-constants'
 
+import {getEscapedStringRegExp} from './getEscapedStringRegExp'
+
 // Location of Blocks within a document object
 const lensDocumentBlocks = lensPath(['textractResponse', 'Blocks'])
 
@@ -422,73 +424,67 @@ export function getPageTables(document, pageNumber) {
 
 
 export function getMultiPageWordsBySearch(document,pageNumber,wordList){
-  let output = []
-  wordList.forEach(function(item) {
-    output.push(...getPageWordsBySearch(document, pageNumber, item))
-  })
-  return output
+  const wordRegexes = wordList.map(word => new RegExp(getEscapedStringRegExp(word)))
+
+  return getPageWordsBySearch(document, pageNumber, wordRegexes)
 }
 
 /**
  * Get WORD blocks that match a search query on a page.
  * @param {Object} document A Textract document object
  * @param {Number} pageNumber The page number to get results for
- * @param {String} searchQuery The string to find in the document
+ * @param {RegExp[]} searchQueries The regular expresion to find in the document
  * @return {Array}
  */
-export function getPageWordsBySearch(document, pageNumber, searchQuery) {
-  if (!searchQuery) return []
-  const searchQueryWords = reject(isEmpty, searchQuery.split(' '))
-
-  function escapeRegex(str) {
-    return str.replace(/[-[\]{}()*+?.,\\^$|]/g, '\\$&')
-  }
-
-  const searchQueryRegex = RegExp(escapeRegex(searchQuery), 'i')
-
- 
+export function getPageWordsBySearch(document, pageNumber, searchQueries) {
+  if (!searchQueries) return []
   
   // Get all the LINE Blocks for a PAGE that match the searchQuery
   const lines = getPageChildrenByType(document, pageNumber, 'LINE')
-  const matchingLines = lines.filter(({ Text }) => searchQueryRegex.test(Text))
+  const matchingLines = lines.filter(({ Text }) => searchQueries.some(query => query.test(Text)))
 
   // Get all the WORD Blocks for each LINE that match the searchQuery
   const matchingWords = matchingLines.reduce((accumulator, { Relationships }) => {
     const wordIds = path([0, 'Ids'], Relationships) || []
-
+    
     // Sort all the WORD Blocks in order from left to right
     const wordBlocks = sortWith([ascend(path(['Geometry', 'BoundingBox', 'Left']))])(
       getDocumentBlocksByIds(document, wordIds)
     )
     
     const wordText = wordBlocks.map(word => word.Text).join(' ')
-
-    const matchRegexp = RegExp(escapeRegex(searchQueryWords.join(' ')), 'ig')
-    let res
-
+    
     function getWordIndexByStringIndex(idx) {
       let searchIndex = 0
       let wordIndex
       for (wordIndex = 0; wordIndex < wordBlocks.length; wordIndex++) {
         const word = wordBlocks[wordIndex]
-
+        
         if (idx < searchIndex + word.Text.length + 1) return wordIndex
         searchIndex += word.Text.length + 1
       }
       return wordIndex
     }
 
-    const matchingWordBlocks = []
-    while ((res = matchRegexp.exec(wordText)) !== null) {
-      const startIndex = res.index
-      const endIndex = startIndex + res[0].length
-      const startWord = getWordIndexByStringIndex(startIndex)
-      const endWord = getWordIndexByStringIndex(endIndex)
 
-      for (let i = startWord; i <= endWord; i++) {
-        if (!matchingWordBlocks.includes(wordBlocks[i])) matchingWordBlocks.push(wordBlocks[i])
+    const matchingWordBlocks = searchQueries.flatMap(query => {
+      const res = query.exec(wordText)
+      
+      const queryMatchingWordBlocks = []
+
+      if (res !== null) {
+        const startIndex = res.index
+        const endIndex = startIndex + res[0].length
+        const startWord = getWordIndexByStringIndex(startIndex)
+        const endWord = getWordIndexByStringIndex(endIndex)
+  
+        for (let i = startWord; i <= endWord; i++) {
+          if (!queryMatchingWordBlocks.includes(wordBlocks[i])) queryMatchingWordBlocks.push(wordBlocks[i])
+        }
       }
-    }
+
+      return queryMatchingWordBlocks
+    })
 
     // TODO most of the below logic can probably be removed / consolidated into the above
 
@@ -524,7 +520,7 @@ export function getPageWordsBySearch(document, pageNumber, searchQuery) {
     // Combine words together such that they match the query (and merge their bounding box info)
     let unmatched = null
     const matchingWordBoundsCombined = matchingWordBoundsSorted.reduce((accumulator, word) => {
-      const wordMatches = searchQueryRegex.test(word.Text)
+      const wordMatches = searchQueries.some(query => query.test(word.Text))
 
       // If a single word matches the query, add it to the list
       if (wordMatches) {
@@ -543,7 +539,7 @@ export function getPageWordsBySearch(document, pageNumber, searchQuery) {
           Width: word.Left - unmatched.Left + word.Width,
           Height: Math.max(unmatched.Height, word.Height),
         }
-        const combinedWordsMatch = searchQueryRegex.test(combinedText)
+        const combinedWordsMatch = searchQueries.some(query => query.test(combinedText))
 
         // If the combined words match the query, add it to the list
         if (combinedWordsMatch) {
@@ -565,3 +561,5 @@ export function getPageWordsBySearch(document, pageNumber, searchQuery) {
   }, [])
   return matchingWords
 }
+
+export const getAreRedactionsOnDocument = document => !!document.redactions && Object.values(document.redactions).some((redactionsOnPage) => Object.values(redactionsOnPage).length > 0);

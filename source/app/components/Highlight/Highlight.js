@@ -17,7 +17,7 @@ import classNames from 'classnames'
 import PropTypes from 'prop-types'
 import Highlighter from 'react-highlighter'
 
-import css from './Highlight.scss'
+import css from './Highlight.module.scss'
 
 Highlight.propTypes = {
   children: PropTypes.node,

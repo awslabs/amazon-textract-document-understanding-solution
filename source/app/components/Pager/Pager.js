@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { setCurrentPageNumber } from '../../store/entities/meta/actions'
 import { getCurrentPageNumber } from '../../store/entities/meta/selectors'
 
-import css from './Pager.scss'
+import css from './Pager.module.scss'
 
 Pager.propTypes = {
   children: PropTypes.func,

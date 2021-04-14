@@ -30,7 +30,7 @@ import {
 } from '../../store/entities/sampleDocuments/selectors'
 import { clearSearchQuery } from '../../store/entities/meta/actions'
 
-import css from './SampleCollections.scss'
+import css from './SampleCollections.module.scss'
 import cs from 'classnames'
 import Loading from '../Loading/Loading'
 

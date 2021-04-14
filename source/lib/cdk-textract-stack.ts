@@ -60,6 +60,8 @@ export interface TextractStackProps {
   isCICDDeploy: boolean;
   description: string;
   enableKendra: boolean;
+  enableElasticsearch: boolean;
+  enableComprehendMedical: boolean;
 }
 
 export class CdkTextractStack extends cdk.Stack {
@@ -255,103 +257,122 @@ export class CdkTextractStack extends cdk.Stack {
       cloudfrontDocumentsBucketPolicyStatement
     );
 
-    /****                      VPC Configuration                         ****/
+    let elasticSearch : es.CfnDomain;
+    let vpc : ec2.Vpc;
+    let esEncryptionKey : kms.Key;
+    let esPolicy : iam.PolicyStatement;
 
-    const vpc = new ec2.Vpc(this, this.resourceName('ElasticSearchVPC'), {
-      cidr: "172.62.0.0/16"
-    })
+    if (props.enableElasticsearch){
 
-    const subnetIds = vpc.selectSubnets({subnetType: ec2.SubnetType.PRIVATE}).subnetIds;
+      /****                      VPC Configuration                         ****/
+      vpc = new ec2.Vpc(this, this.resourceName('ElasticSearchVPC'), {
+        cidr: "172.62.0.0/16"
+      })
 
-    const securityGroup = new ec2.SecurityGroup(this, this.resourceName('ESSecurityGroup'), {
-      allowAllOutbound: true,
-      vpc: vpc,
-      securityGroupName: "Elasticsearch from lambda"
-    })
+      const subnetIds = vpc.selectSubnets({subnetType: ec2.SubnetType.PRIVATE}).subnetIds;
 
-    securityGroup.addIngressRule(Peer.anyIpv4(), Port.allTraffic(), "allow lambda ingress", false)
+      const securityGroup = new ec2.SecurityGroup(this, this.resourceName('ESSecurityGroup'), {
+        allowAllOutbound: true,
+        vpc: vpc,
+        securityGroupName: "Elasticsearch from lambda"
+      })
 
-    const esSearchLogGroup = new LogGroup(
-      this,
-      this.resourceName("ElasticSearchSearchLogGroup"),
-      {
-        logGroupName: this.resourceName("ElasticSearchSearchLogGroup"),
-      }
-    );
+      securityGroup.addIngressRule(Peer.anyIpv4(), Port.allTraffic(), "allow lambda ingress", false)
 
-    const esIndexLogGroup = new LogGroup(
-      this,
-      this.resourceName("ElasticSearchIndexLogGroup"),
-      {
-        logGroupName: this.resourceName("ElasticSearchIndexLogGroup"),
-      }
-    );
-
-    // Elasticsearch
-    let elasticSearch;
-
-    const esEncryptionKey = new kms.Key(this, "esEncryptionKey", {
-      enableKeyRotation: true,
-    });
-
-    if (!props.isCICDDeploy) {
-      elasticSearch = new es.CfnDomain(
+      const esSearchLogGroup = new LogGroup(
         this,
-        this.resourceName("ElasticSearchCluster"),
+        this.resourceName("ElasticSearchSearchLogGroup"),
         {
-          elasticsearchVersion: "7.4",
-          elasticsearchClusterConfig: {
-            instanceType: "m5.large.elasticsearch",
-          },
-          ebsOptions: {
-            ebsEnabled: true,
-            volumeSize: 20,
-            volumeType: "gp2",
-          },
-          encryptionAtRestOptions: {
-            enabled: true,
-            kmsKeyId: esEncryptionKey.keyId,
-          },
-          nodeToNodeEncryptionOptions: {
-            enabled: true,
-          },
+          logGroupName: this.resourceName("ElasticSearchSearchLogGroup"),
         }
       );
-    } else {
-      elasticSearch = new es.CfnDomain(
+
+      /****                      ES Resources                        ****/
+      
+      const esIndexLogGroup = new LogGroup(
         this,
-        this.resourceName("ElasticSearchCluster"),
+        this.resourceName("ElasticSearchIndexLogGroup"),
         {
-          elasticsearchVersion: "7.4",
-          elasticsearchClusterConfig: {
-            instanceType: "m5.large.elasticsearch",
-            instanceCount: 2,
-            dedicatedMasterEnabled: true,
-            zoneAwarenessEnabled: true,
-            zoneAwarenessConfig: {
-              availabilityZoneCount: 2,
+          logGroupName: this.resourceName("ElasticSearchIndexLogGroup"),
+        }
+      );
+
+      esEncryptionKey = new kms.Key(this, "esEncryptionKey", {
+        enableKeyRotation: true,
+      });
+
+      if (!props.isCICDDeploy) {
+        elasticSearch = new es.CfnDomain(
+          this,
+          this.resourceName("ElasticSearchCluster"),
+          {
+            elasticsearchVersion: "7.4",
+            elasticsearchClusterConfig: {
+              instanceType: "m5.large.elasticsearch",
             },
-          },
-          ebsOptions: {
-            ebsEnabled: true,
-            volumeSize: 20,
-            volumeType: "gp2",
-          },
-          encryptionAtRestOptions: {
-            enabled: true,
-            kmsKeyId: esEncryptionKey.keyId,
-          },
-          nodeToNodeEncryptionOptions: {
-            enabled: true,
-          },
-          vpcOptions: {
-            subnetIds: [subnetIds[0], subnetIds[1]],
-            securityGroupIds: [securityGroup.securityGroupId]
+            ebsOptions: {
+              ebsEnabled: true,
+              volumeSize: 20,
+              volumeType: "gp2",
+            },
+            encryptionAtRestOptions: {
+              enabled: true,
+              kmsKeyId: esEncryptionKey.keyId,
+            },
+            nodeToNodeEncryptionOptions: {
+              enabled: true,
+            },
           }
-        }
-      );
+        );
+      } else {
+        elasticSearch = new es.CfnDomain(
+          this,
+          this.resourceName("ElasticSearchCluster"),
+          {
+            elasticsearchVersion: "7.4",
+            elasticsearchClusterConfig: {
+              instanceType: "m5.large.elasticsearch",
+              instanceCount: 2,
+              dedicatedMasterEnabled: true,
+              zoneAwarenessEnabled: true,
+              zoneAwarenessConfig: {
+                availabilityZoneCount: 2,
+              },
+            },
+            ebsOptions: {
+              ebsEnabled: true,
+              volumeSize: 20,
+              volumeType: "gp2",
+            },
+            encryptionAtRestOptions: {
+              enabled: true,
+              kmsKeyId: esEncryptionKey.keyId,
+            },
+            nodeToNodeEncryptionOptions: {
+              enabled: true,
+            },
+            vpcOptions: {
+              subnetIds: [subnetIds[0], subnetIds[1]],
+              securityGroupIds: [securityGroup.securityGroupId]
+            }
+          }
+        );
+      }
+      esPolicy  =new iam.PolicyStatement({
+        actions: [
+          "es:ESHttpHead",
+          "es:Get*",
+          "es:List*",
+          "es:Describe*",
+          "es:ESHttpGet",
+          "es:ESHttpDelete",
+          "es:ESHttpPost",
+          "es:ESHttpPut",
+        ],
+        resources: [`${elasticSearch.attrArn}/*`],
+      })
+     
     }
-
     const jobResultsKey = new kms.Key(
       this,
       this.resourceName("JobResultsKey"),
@@ -621,6 +642,8 @@ export class CdkTextractStack extends cdk.Stack {
       },
     });
 
+    new cdk.CfnOutput(this, 'DUSUserPoolId', { value: textractUserPool.ref });
+
     // Depends upon all other parts of the stack having been created.
     const textractUserPoolUser = new CfnUserPoolUser(
       this,
@@ -842,7 +865,7 @@ export class CdkTextractStack extends cdk.Stack {
           ASYNC_QUEUE_URL: asyncJobsQueue.queueUrl,
           ERROR_HANDLER_QUEUE_URL: jobErrorHandlerQueue.queueUrl,
         },
-        vpc: vpc
+        vpc: props.enableElasticsearch? vpc : null
       }
     );
 
@@ -930,10 +953,10 @@ export class CdkTextractStack extends cdk.Stack {
           OUTPUT_BUCKET: documentsS3Bucket.bucketName,
           OUTPUT_TABLE: outputTable.tableName,
           DOCUMENTS_TABLE: documentsTable.tableName,
-          ES_DOMAIN: elasticSearch.attrDomainEndpoint,
           PDF_LAMBDA: pdfGenerator.functionName,
+          ENABLE_COMPREHEND_MEDICAL: props.enableComprehendMedical.toString(),
         },
-        vpc: vpc
+        vpc: props.enableElasticsearch? vpc : null
       }
     );
 
@@ -955,24 +978,7 @@ export class CdkTextractStack extends cdk.Stack {
     samplesS3Bucket.grantReadWrite(syncProcessor);
     outputTable.grantReadWriteData(syncProcessor);
     documentsTable.grantReadWriteData(syncProcessor);
-    esEncryptionKey.grantEncryptDecrypt(syncProcessor);
-
-    syncProcessor.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "es:ESHttpHead",
-          "es:Get*",
-          "es:List*",
-          "es:Describe*",
-          "es:ESHttpGet",
-          "es:ESHttpDelete",
-          "es:ESHttpPost",
-          "es:ESHttpPut",
-        ],
-        resources: [`${elasticSearch.attrArn}/*`],
-      })
-    );
-
+    
     //------------------------------------------------------------
 
     // Async Job Processor (Start jobs using Async APIs)
@@ -991,7 +997,7 @@ export class CdkTextractStack extends cdk.Stack {
           SNS_TOPIC_ARN: jobCompletionTopic.topicArn,
           SNS_ROLE_ARN: textractServiceRole.roleArn,
         },
-        vpc: vpc,
+        vpc: props.enableElasticsearch ? vpc : null, 
       }
     );
 
@@ -1034,10 +1040,10 @@ export class CdkTextractStack extends cdk.Stack {
           OUTPUT_BUCKET: documentsS3Bucket.bucketName,
           OUTPUT_TABLE: outputTable.tableName,
           DOCUMENTS_TABLE: documentsTable.tableName,
-          ES_DOMAIN: elasticSearch.attrDomainEndpoint,
           PDF_LAMBDA: pdfGenerator.functionName,
+          ENABLE_COMPREHEND_MEDICAL: props.enableComprehendMedical.toString(),
         },
-        vpc: vpc,
+        vpc: props.enableElasticsearch ? vpc : null,
       }
     );
 
@@ -1060,24 +1066,6 @@ export class CdkTextractStack extends cdk.Stack {
     documentsTable.grantReadWriteData(jobResultProcessor);
     documentsS3Bucket.grantReadWrite(jobResultProcessor);
     samplesS3Bucket.grantReadWrite(jobResultProcessor);
-
-    jobResultProcessor.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "es:ESHttpHead",
-          "es:Get*",
-          "es:List*",
-          "es:Describe*",
-          "es:ESHttpGet",
-          "es:ESHttpDelete",
-          "es:ESHttpPost",
-          "es:ESHttpPut",
-        ],
-        resources: [`${elasticSearch.attrArn}/*`],
-      })
-    );
-
-    esEncryptionKey.grantEncryptDecrypt(jobResultProcessor);
 
     //------------------------------------------------------------
 
@@ -1137,22 +1125,37 @@ export class CdkTextractStack extends cdk.Stack {
       roles: [syncProcessor.role, jobResultProcessor.role],
     });
 
-    const comprehendMedicalPolicy = new iam.Policy(
-      this,
-      "comprehendMedicalPolicy",
-      {
-        statements: [
-          new iam.PolicyStatement({
-            actions: [
-              "comprehendmedical:InferICD10CM",
-              "comprehendmedical:DetectEntitiesV2",
-            ],
-            resources: ["*"], // Currently, ComprehendMedical does not support resource level permissionshttps://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazontextract.html#amazontextract-resources-for-iam-policies
-          }),
-        ],
-        roles: [syncProcessor.role, jobResultProcessor.role],
-      }
-    );
+    if(props.enableComprehendMedical){
+      const comprehendMedicalPolicy = new iam.Policy(
+        this,
+        "comprehendMedicalPolicy",
+        {
+          statements: [
+            new iam.PolicyStatement({
+              actions: [
+                "comprehendmedical:InferICD10CM",
+                "comprehendmedical:DetectEntitiesV2",
+              ],
+              resources: ["*"], // Currently, ComprehendMedical does not support resource level permissionshttps://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazontextract.html#amazontextract-resources-for-iam-policies
+            }),
+          ],
+          roles: [syncProcessor.role, jobResultProcessor.role],
+        }
+      );
+        const cfncomprehendMedicalPolicy = comprehendMedicalPolicy.node
+        .defaultChild as iam.CfnPolicy;
+      cfncomprehendMedicalPolicy.cfnOptions.metadata = {
+        cfn_nag: {
+          rules_to_suppress: [
+            {
+              id: "W12",
+              reason:
+                "Currently, some AI services does not support resource level permissions",
+            },
+          ],
+        },
+      };
+    }
 
     //------------------------------------------------------------
 
@@ -1172,9 +1175,8 @@ export class CdkTextractStack extends cdk.Stack {
           SAMPLE_BUCKET: samplesS3Bucket.bucketName,
           OUTPUT_TABLE: outputTable.tableName,
           DOCUMENTS_TABLE: documentsTable.tableName,
-          ES_DOMAIN: elasticSearch.attrDomainEndpoint,
         },
-        vpc: vpc,
+        vpc: props.enableElasticsearch ? vpc : null,
       }
     );
 
@@ -1186,25 +1188,8 @@ export class CdkTextractStack extends cdk.Stack {
     documentsTable.grantReadWriteData(apiProcessor);
     documentsTable.grant(apiProcessor, "dynamodb:DescribeTable");
     outputTable.grantReadWriteData(apiProcessor);
-    documentsS3Bucket.grantRead(apiProcessor);
+    documentsS3Bucket.grantReadWrite(apiProcessor);
     samplesS3Bucket.grantRead(apiProcessor);
-    apiProcessor.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "es:ESHttpHead",
-          "es:Get*",
-          "es:List*",
-          "es:Describe*",
-          "es:ESHttpGet",
-          "es:ESHttpDelete",
-          "es:ESHttpPost",
-          "es:ESHttpPut",
-        ],
-        resources: [`${elasticSearch.attrArn}/*`],
-      })
-    );
-    esEncryptionKey.grantEncryptDecrypt(apiProcessor);
-
     // API
 
     // Log group for API logs
@@ -1279,9 +1264,6 @@ export class CdkTextractStack extends cdk.Stack {
           methodResponses: [
             {
               statusCode: "200",
-              // responseModels: {
-              //   'application/json': 'Empty',
-              // },
               responseParameters: {
                 "method.response.header.Access-Control-Allow-Headers": true,
                 "method.response.header.Access-Control-Allow-Methods": true,
@@ -1306,9 +1288,6 @@ export class CdkTextractStack extends cdk.Stack {
 
     addCorsOptionsAndMethods(api.root, []);
 
-    const searchResource = api.root.addResource("search");
-    addCorsOptionsAndMethods(searchResource, ["GET"]);
-
     const documentsResource = api.root.addResource("documents");
     addCorsOptionsAndMethods(documentsResource, ["GET"]);
 
@@ -1318,6 +1297,12 @@ export class CdkTextractStack extends cdk.Stack {
     const redactResource = api.root.addResource("redact");
     addCorsOptionsAndMethods(redactResource, ["GET", "POST"]);
 
+    const redactionResource = api.root.addResource("redaction");
+    addCorsOptionsAndMethods(redactionResource, ["GET", "POST"]);
+
+    const redactionGlobalResource = api.root.addResource("redactionglobal");
+    addCorsOptionsAndMethods(redactionGlobalResource, ["GET"]);
+
     cognitoPolicy.addStatements(
       new iam.PolicyStatement({
         actions: ["execute-api:Invoke"],
@@ -1326,6 +1311,25 @@ export class CdkTextractStack extends cdk.Stack {
       })
     );
 
+
+    if (props.enableElasticsearch){
+        //  -------  Adding Env Vars ------ //
+        apiProcessor.addEnvironment("ES_DOMAIN", elasticSearch.attrDomainEndpoint);
+        syncProcessor.addEnvironment("ES_DOMAIN", elasticSearch.attrDomainEndpoint);
+        jobResultProcessor.addEnvironment("ES_DOMAIN", elasticSearch.attrDomainEndpoint);
+            
+        //  -------  Adding Permissions ------ //
+        esEncryptionKey.grantEncryptDecrypt(syncProcessor);
+        syncProcessor.addToRolePolicy(esPolicy);
+        esEncryptionKey.grantEncryptDecrypt(jobResultProcessor); 
+        jobResultProcessor.addToRolePolicy(esPolicy);
+        esEncryptionKey.grantEncryptDecrypt(apiProcessor);
+        apiProcessor.addToRolePolicy(esPolicy);
+
+        //  -------  API  ------ //
+        const searchResource = api.root.addResource("search");
+        addCorsOptionsAndMethods(searchResource, ["GET"]);
+    }
     // add kendra index id to lambda environment in case of DUS+Kendra mode
     if (props.enableKendra) {
       let kendraResources = this.createandGetKendraRelatedResources(
@@ -1495,20 +1499,6 @@ export class CdkTextractStack extends cdk.Stack {
     const cfncomprehendPolicy = comprehendPolicy.node
       .defaultChild as iam.CfnPolicy;
     cfncomprehendPolicy.cfnOptions.metadata = {
-      cfn_nag: {
-        rules_to_suppress: [
-          {
-            id: "W12",
-            reason:
-              "Currently, some AI services does not support resource level permissions",
-          },
-        ],
-      },
-    };
-
-    const cfncomprehendMedicalPolicy = comprehendMedicalPolicy.node
-      .defaultChild as iam.CfnPolicy;
-    cfncomprehendMedicalPolicy.cfnOptions.metadata = {
       cfn_nag: {
         rules_to_suppress: [
           {

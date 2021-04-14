@@ -17,7 +17,7 @@ $button-palettes: (
     background: color(orange, 20),
     background-alternate: color(orange, 30),
     highlight: color(orange, 10),
-    foreground: color(gray, 70)
+    foreground: black
   )
 );
 
@@ -68,7 +68,7 @@ $button-palettes: (
 
 // Palette specific styles
 @each $palette, $colors in $button-palettes {
-  .#{$palette} {
+  .#{"" + $palette} {
     color: map-get($colors, 'foreground');
     background-color: map-get($colors, 'background');
     border-color: map-get($colors, 'background');
@@ -131,13 +131,13 @@ $button-palettes: (
   }
 
   @each $palette, $colors in $button-palettes {
-    &.#{$palette} {
+    &.#{"" + $palette} {
       color: map-get($colors, 'background');
     }
 
-    &.#{$palette}:hover,
-    &.#{$palette}:focus,
-    &.#{$palette}:hover:focus {
+    &.#{"" + $palette}:hover,
+    &.#{"" + $palette}:focus,
+    &.#{"" + $palette}:hover:focus {
       color: map-get($colors, 'background-alternate');
     }
   }

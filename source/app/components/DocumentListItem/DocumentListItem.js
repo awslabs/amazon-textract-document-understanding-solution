@@ -21,7 +21,7 @@ import classNames from 'classnames'
 import Loading from '../Loading/Loading'
 import { fetchSingleDocument, deleteDocument } from '../../store/entities/documents/actions'
 
-import css from './DocumentListItem.scss'
+import css from './DocumentListItem.module.scss'
 
 export default function DocumentListItem({ id, title, link, basename, extension, documentStatus }) {
   const pending = documentStatus == 'IN_PROGRESS'

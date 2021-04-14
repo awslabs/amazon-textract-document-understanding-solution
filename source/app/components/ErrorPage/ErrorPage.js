@@ -12,8 +12,31 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-const autoprefixer = require('autoprefixer')
+import React from 'react'
+import PropTypes from 'prop-types'
 
-module.exports = {
-  plugins: [autoprefixer()],
+import Button from '../Button/Button'
+
+import css from './ErrorPage.module.scss'
+
+Error.propTypes = {
+  statusCode: PropTypes.number,
+}
+
+export default function Error({ statusCode }) {
+  return (
+    <div className={css.error}>
+      {statusCode ? (
+        <p className={css.message}>
+          A {statusCode} error occurred on server. Please refresh the page and try again.
+        </p>
+      ) : (
+        <p className={css.message}>Something went wrong. Please refresh the page and try again.</p>
+      )}
+
+      <p>
+        <Button link={{ href: '/home' }}>Go Home</Button>
+      </p>
+    </div>
+  )
 }

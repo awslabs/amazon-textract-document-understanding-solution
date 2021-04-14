@@ -63,13 +63,14 @@
   overflow: hidden;
   overflow-y: auto;
   align-items: center;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }
 
 .highlight {
   position: absolute;
   display: block;
   background-color: rgba(#fee385, 0.5);
-  box-shadow: 0 0 0 2px color(orange);
+  box-shadow: 0 0 0 2px #996633;
   box-sizing: content-box;
   transition: all 1000ms 1000ms linear;
   transition-property: background-color, box-shadow;
@@ -94,10 +95,14 @@
 .redact {
   position: absolute;
   display: block;
-  background-color: #000;
+  background: rgba(grey, 0.2);
   box-shadow: 0 0 0 2px #000;
   box-sizing: content-box;
-  z-index: 4;
+  z-index: 0;
+}
+
+.exportPreviewRedaction {
+  background: #000;
 }
 
 .cellHighlight {

@@ -30,7 +30,7 @@ import CameraCapture from '../CameraCapture/CameraCapture'
 import { submitDocument } from '../../store/entities/documents/actions'
 import { clearSearchQuery } from '../../store/entities/meta/actions'
 
-import css from './FileUpload.scss'
+import css from './FileUpload.module.scss'
 
 const {
   publicRuntimeConfig:{
@@ -176,7 +176,7 @@ if (isROMode==="true"){
       <input {...getInputProps({
         disabled: true
       })} />
-      <img src="/static/images/icon_file-upload.svg" alt="File Upload Icon" />
+      <img src="/images/icon_file-upload.svg" alt="File Upload Icon" />
       {isDragActive && <p className={css.instructions}>Drop the documents here...</p>}
       {!isDragActive && isReadyToUpload && (
         <>
@@ -210,7 +210,7 @@ else {
       })}
     >
       <input {...getInputProps()} />
-      <img src="/static/images/icon_file-upload.svg" alt="File Upload Icon" />
+      <img src="/images/icon_file-upload.svg" alt="File Upload Icon" />
       {isDragActive && <p className={css.instructions}>Drop the documents here...</p>}
       {!isDragActive && isReadyToUpload && (
         <>
@@ -246,11 +246,11 @@ else {
               return (
                 <li key={fileName}>
                   {isReadyToUpload && (
-                    <img src="/static/images/icon_document.svg" alt="Document Icon" />
+                    <img src="/images/icon_document.svg" alt="Document Icon" />
                   )}
                   {!success && !error && progress && <span>{progress}</span>}
-                  {success && <img src="/static/images/icon_success.svg" alt="Success Icon" />}
-                  {error && <img src="/static/images/icon_error.svg" alt="Error Icon" />}
+                  {success && <img src="/images/icon_success.svg" alt="Success Icon" />}
+                  {error && <img src="/images/icon_error.svg" alt="Error Icon" />}
                   {fileName}
                   {isReadyToUpload && (
                     <svg
@@ -273,7 +273,7 @@ else {
             </Button>
           )}
 
-          {!isReadyToUpload && (
+          {isUploadSuccessful && (
             <Button inverted disabled={!isUploadSuccessful} link={{ href: '/documents' }}>
               Continue
             </Button>
@@ -319,26 +319,34 @@ async function getUniqueDocumentId(){
  */
 function uploadFiles({ fileNames = [], files = {}, onSuccess, onError, onProgress }) {
   const fileLengthExceeded = Boolean (fileNames.length > 100);
+
   if(fileLengthExceeded){
     alert(" Supported no. of files upload limit : less than 100");
   }
-  return fileNames.map(fileName => {
+
+  return fileNames.map(fileName => new Promise((resolve, reject) => {
     const file = files[fileName]
+
     if(fileLengthExceeded){
-      return onError({ fileName })
+      onError({ fileName })
+      reject();
     }
     if(!["application/pdf","image/png","image/jpeg"].includes(file.type)){
       alert(fileName + " : Supported file formats : JPG,PNG,PDF");
-      return onError({ fileName })
+      onError({ fileName })
+      reject();
     }
     if (file.type =="application/pdf" && file.size/(1000000)>=150){  //Maximum File size supported is 150MB
       alert(fileName + " : Supported PDF size : less than 150MB");
-      return onError({ fileName })
+      onError({ fileName })
+      reject();
     }
     if (["image/png","image/jpeg"].includes(file.type) && file.size/(1000000)>=5){  //Maximum File size supported is 5MB
       alert(fileName + " : Supported Image size : less than 5MB");
-      return onError({ fileName })
+      onError({ fileName })
+      reject();
     }
+    
     onProgress({
       progress: {
         loaded: 0,
@@ -347,23 +355,26 @@ function uploadFiles({ fileNames = [], files = {}, onSuccess, onError, onProgres
       fileName,
       file,
     })
+
     getUniqueDocumentId()
-      .then((result) => {   
+    .then((result) => {   
         const key = [result, fileName].join('/')
-        Storage.put(key, file, {
+        
+        return Storage.put(key, file, {
           progressCallback(progress) {
             onProgress({ progress, fileName, file })
           },
         })
-          .then(result => {
-            return onSuccess({ result, fileName, file })
+        .then(result => {
+            onSuccess({ result, fileName, file })
+            resolve()
           })
           .catch(error => {
             onError({ error, fileName, file })
-            throw error
+            reject(error);
           })
       });
-  })
+  }));
 }
 
 /**

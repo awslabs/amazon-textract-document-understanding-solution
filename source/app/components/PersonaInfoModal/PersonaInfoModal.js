@@ -17,7 +17,7 @@ import { getSearchPersona } from "../../store/entities/meta/selectors";
 
 import Modal from "../Modal/Modal";
 import Button from "../Button/Button";
-import css from "./PersonaInfoModal.scss";
+import css from "./PersonaInfoModal.module.scss";
 import cs from "classnames";
 import FormInput from "../FormInput/FormInput";
 
@@ -73,7 +73,7 @@ function PersonaInfoModal({ onClose, onSubmit, searchPersona }) {
 
         <div className={css.personas}>
           <label>
-            <img src="/static/images/healthcare-provider.png" />
+            <img src="/images/healthcare-provider.png" />
             <input
               name="persona"
               type="radio"
@@ -85,7 +85,7 @@ function PersonaInfoModal({ onClose, onSubmit, searchPersona }) {
             <p>Has access to information for Healthcare Professionals.</p>
           </label>
           <label>
-            <img src="/static/images/scientist.png" />
+            <img src="/images/scientist.png" />
             <input
               name="persona"
               type="radio"
@@ -97,7 +97,7 @@ function PersonaInfoModal({ onClose, onSubmit, searchPersona }) {
             <p>Has access to scientific papers and research documents.</p>
           </label>
           <label>
-            <img src="/static/images/general-public.png" />
+            <img src="/images/general-public.png" />
             <input
               name="persona"
               type="radio"
@@ -111,7 +111,7 @@ function PersonaInfoModal({ onClose, onSubmit, searchPersona }) {
             </p>
           </label>
           <label>
-            <img src="/static/images/nofilter.svg" />
+            <img src="/images/nofilter.svg" />
             <input
               name="persona"
               type="radio"

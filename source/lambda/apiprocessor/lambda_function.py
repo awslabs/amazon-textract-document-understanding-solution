@@ -16,14 +16,12 @@ import os
 import json
 import boto3
 from botocore.exceptions import ClientError
-import re
-
 from documents import getDocuments
 from document import getDocument, createDocument, deleteDocument
 from redact import redact
 from search import search, deleteESItem
 from kendraHelper import KendraHelper
-
+from redaction import getDocumentRedaction, saveDocumentRedaction, getRedactionGlobal
 
 def redactHeadersFromLambdaEvent(lambdaEvent):
     lambdaEvent.pop('headers', None)
@@ -72,24 +70,47 @@ def lambda_handler(event, context):
 
     if('resource' in event):
         request = {}
-        request["elasticsearchDomain"] = os.environ['ES_DOMAIN']
+        if 'ES_DOMAIN' in os.environ:
+            request["elasticsearchDomain"] = os.environ['ES_DOMAIN']
         request["outputTable"] = os.environ['OUTPUT_TABLE']
         request["documentsTable"] = os.environ['DOCUMENTS_TABLE']
 
         # search Elasticsearch handler
-        if(event['resource'] == '/search'):
+        if(event['resource'] == '/search' and 'ES_DOMAIN' in os.environ):
             if('queryStringParameters' in event and 'k' in event['queryStringParameters']):
                 request["keyword"] = event['queryStringParameters']['k']
                 if('documentId' in event['queryStringParameters']):
                     request["documentId"] = event['queryStringParameters']['documentId']
                 result = search(request)
 
+        # a specific document redaction items (terms, headers and footers)
+        elif(event['resource'] == '/redaction'):
+            
+             if event['httpMethod'] == 'GET':
+                 
+                 if 'documentId' in event['queryStringParameters']:
+                     result = getDocumentRedaction(event['queryStringParameters']['documentId'],
+                                                   documentBucket)
+                 else:
+                     status_code = 400
+                     result = "Bad request, no document id given"
+
+             elif event['httpMethod'] == 'POST':
+                status_code, result = saveDocumentRedaction(event['queryStringParameters']['documentId'],
+                                               documentBucket,
+                                               os.environ['DOCUMENTS_TABLE'],
+                                               event['body'])
+
+        # global redaction items (labels and exclusion lists)
+        elif(event['resource'] == '/redactionglobal'):
+
+            if event['httpMethod'] == 'GET':
+                result = getRedactionGlobal(documentBucket)
+                    
         # search Kendra if available
-        elif(event['resource'] == '/searchkendra' and event['httpMethod'] == 'POST'):
-            if 'KENDRA_INDEX_ID' in os.environ:
-                kendraClient = KendraHelper()
-                result = kendraClient.search(os.environ['KENDRA_INDEX_ID'],
-                                             event['body'])
+        elif(event['resource'] == '/searchkendra' and event['httpMethod'] == 'POST' and 'KENDRA_INDEX_ID' in os.environ):
+            kendraClient = KendraHelper()
+            result = kendraClient.search(os.environ['KENDRA_INDEX_ID'], event['body'])
 
         # Kendra search result feedback for relevance boosting
         elif(event['resource'] == '/feedbackkendra' and event['httpMethod'] == 'POST'):
@@ -159,23 +180,18 @@ def lambda_handler(event, context):
                 if('documentid' in event['queryStringParameters']):
                     request["documentId"] = event['queryStringParameters']['documentid']
                     result = deleteDocument(request)
-                    deleteESItem(
-                        request["elasticsearchDomain"], request["documentId"])
+                    if 'ES_DOMAIN' in os.environ:
+                        deleteESItem(request["elasticsearchDomain"], request["documentId"])
                     # remove it from Kendra's index too if present
                     if 'KENDRA_INDEX_ID' in os.environ:
                         kendraClient = KendraHelper()
                         kendraClient.deindexDocument(os.environ['KENDRA_INDEX_ID'],
                                                      request["documentId"])
 
-        elif(event['resource'] == '/redact'):
-            params = event['queryStringParameters'] if 'queryStringParameters' in event else {
-            }
-            request["params"] = params
-            result = redact(request)
 
     return {
         "isBase64Encoded": False,
-        "statusCode": 200,
+        "statusCode": status_code,
         'body': json.dumps(result),
         "headers": {
             'Content-Type': 'application/json',

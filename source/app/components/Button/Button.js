@@ -19,9 +19,60 @@ import PropTypes from 'prop-types'
 
 import { linkShape } from '../../utils/link-generators.js'
 
-import css from './Button.scss'
+import css from './Button.module.scss'
 
 export const BUTTON_PALETTES = ['black', 'blue', 'orange']
+
+const Button = React.forwardRef(({
+  children,
+  className,
+  disabled = false,
+  inverted = false,
+  link,
+  onClick = null,
+  palette = 'orange',
+  simple = false,
+  ...otherProps
+}, ref) => {
+  const { target, ...linkProps } = link || {}
+  const buttonClassNames = classNames(css.button, css[palette], className, {
+    [css.disabled]: disabled,
+    [css.inverted]: inverted && !simple,
+    [css.simple]: simple,
+  })
+  onClick = disabled ? () => false : onClick
+
+  if (otherProps.href) {
+    return (
+      <a
+        ref={ref}
+        className={buttonClassNames}
+        target={target || null}
+        tabIndex={disabled ? -1 : null}
+        {...otherProps}
+      >
+        {children}
+      </a>
+    )
+  }
+
+  return !disabled && link ? (
+    <Link ref={ref} {...linkProps}>
+      <a
+        className={buttonClassNames}
+        target={target || null}
+        tabIndex={disabled ? -1 : null}
+        {...otherProps}
+      >
+        {children}
+      </a>
+    </Link>
+  ) : (
+    <button ref={ref} className={buttonClassNames} onClick={onClick} tabIndex={disabled ? -1 : null} {...otherProps}>
+      {children}
+    </button>
+  )
+})
 
 Button.propTypes = {
   children: PropTypes.node.isRequired,
@@ -34,52 +85,4 @@ Button.propTypes = {
   simple: PropTypes.bool,
 }
 
-export default function Button({
-  children,
-  className,
-  disabled = false,
-  inverted = false,
-  link,
-  onClick = null,
-  palette = 'orange',
-  simple = false,
-  ...otherProps
-}) {
-  const { target, ...linkProps } = link || {}
-  const buttonClassNames = classNames(css.button, css[palette], className, {
-    [css.disabled]: disabled,
-    [css.inverted]: inverted && !simple,
-    [css.simple]: simple,
-  })
-  onClick = disabled ? () => false : onClick
-
-  if (otherProps.href) {
-    return (
-      <a
-        className={buttonClassNames}
-        target={target || null}
-        tabIndex={disabled ? -1 : null}
-        {...otherProps}
-      >
-        {children}
-      </a>
-    )
-  }
-
-  return !disabled && link ? (
-    <Link {...linkProps}>
-      <a
-        className={buttonClassNames}
-        target={target || null}
-        tabIndex={disabled ? -1 : null}
-        {...otherProps}
-      >
-        {children}
-      </a>
-    </Link>
-  ) : (
-    <button className={buttonClassNames} onClick={onClick} tabIndex={disabled ? -1 : null} {...otherProps}>
-      {children}
-    </button>
-  )
-}
+export default Button

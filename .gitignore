@@ -1,0 +1,36 @@
+# dependencies
+/.pnp
+.pnp.js
+node_modules/
+
+# testing
+/coverage
+
+# build/deploy
+.next/
+build/
+deployment/build-dist/
+deployment/global-s3-assets/
+deployment/regional-s3-assets/
+deployment/build-dist/
+source/app/out/
+source/lib/cdk-textract-stack.js
+source/lib/cdk-textract-client-stack.js
+source/lib/cdk-textract-client-stack.js-e
+cdk.out/
+
+# compressed files
+source/lambda/boto3/python/
+source/lambda/elasticsearch/python/
+*.zip
+
+# python
+__pycache__/
+
+# environment
+.env
+
+# misc
+.DS_Store
+.idea/
+.vscode/

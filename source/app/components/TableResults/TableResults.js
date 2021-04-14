@@ -19,7 +19,7 @@ import cs from 'classnames'
 
 import { groupWith } from 'ramda'
 
-import css from './TableResults.scss'
+import css from './TableResults.module.scss'
 
 
 export default function TableResults({
@@ -32,23 +32,13 @@ export default function TableResults({
   onDownload,
   document
 }) {
-  const container = useRef()
-
-  useEffect(() => {
-    if (visible && container.current) {
-      const firstOnThisPage = container.current.querySelector(`.${css.onThisPage}`)
-      if (firstOnThisPage) firstOnThisPage.scrollIntoView()
-    }
-  }, [currentPageNumber, visible])
-
-
   if (!tables.length&& visible) {
     return <p className={css.noTable}>No Tables detected</p>
   }
   
   return (
 
-    <div className={cs(css.tableList, visible && css.visible,)} ref={container}>
+    <div className={cs(css.tableList, visible && css.visible,)}>
       <ul>
         <h4>Tables: {tables.length || 0} Found</h4>
         {groupWith((a, b) => a.pageNumber === b.pageNumber)(tables).map((pairs, i) => (

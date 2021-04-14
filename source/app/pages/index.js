@@ -20,7 +20,7 @@ import Button from "../components/Button/Button";
 import FormInput from "../components/FormInput/FormInput";
 import Loading from "../components/Loading/Loading";
 
-import css from "./login.scss";
+import css from "./login.module.scss";
 
 Login.getInitialProps = function() {
   return {

@@ -25,7 +25,7 @@ import {
 } from "../../store/entities/meta/actions";
 import { getDocumentSearchQuery } from "../../store/entities/meta/selectors";
 
-import css from "./DocumentSearchBar.scss";
+import css from "./DocumentSearchBar.module.scss";
 
 DocumentSearchBar.propTypes = {
   className: PropTypes.string,
@@ -75,7 +75,7 @@ function DocumentSearchBar({
           value={searchQuery}
           onChange={searchValueChange}
         />
-        {!!searchQuery ? (
+        {!!searchQuery && (
           <Button
             type="button"
             simple
@@ -92,7 +92,7 @@ function DocumentSearchBar({
               <path d="m12 10.5857864 5.2928932-5.29289318c.3905243-.39052429 1.0236893-.39052429 1.4142136 0s.3905243 1.02368927 0 1.41421356l-5.2928932 5.29289322 5.2928932 5.2928932c.3905243.3905243.3905243 1.0236893 0 1.4142136s-1.0236893.3905243-1.4142136 0l-5.2928932-5.2928932-5.29289322 5.2928932c-.39052429.3905243-1.02368927.3905243-1.41421356 0s-.39052429-1.0236893 0-1.4142136l5.29289318-5.2928932-5.29289318-5.29289322c-.39052429-.39052429-.39052429-1.02368927 0-1.41421356s1.02368927-.39052429 1.41421356 0z" />
             </svg>
           </Button>
-        ) : null}
+        )}
       </div>
     </form>
   );

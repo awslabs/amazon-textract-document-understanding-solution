@@ -130,7 +130,9 @@ def processRequest(request):
     maxPages = 100
     comprehendClient = ComprehendHelper()
     responseDocumentName = "{}{}response.json".format(outputPath,TEXTRACT_PATH_S3_PREFIX)
-    comprehendAndMedicalEntities = comprehendClient.processComprehend(outputBucketName, responseDocumentName, comprehendOutputPath, maxPages)
+    # comprehend medical entities API will be called only if the flag is set to true during deployment
+    isComprehendMedicalEnabled = True if os.environ['ENABLE_COMPREHEND_MEDICAL']=="true" else False
+    comprehendAndMedicalEntities = comprehendClient.processComprehend(outputBucketName, responseDocumentName, comprehendOutputPath, isComprehendMedicalEnabled, maxPages)
 
     # if Kendra is available then let it index the document
     if 'KENDRA_INDEX_ID' in os.environ:
@@ -149,12 +151,13 @@ def processRequest(request):
     print("Processed Comprehend data: {}".format(comprehendAndMedicalEntities))
 
     # index document once the comprehend entities and KVPairs have been extracted
-    for key, val in opg_output[KVPAIRS].items():
-        if key not in comprehendAndMedicalEntities:
-            comprehendAndMedicalEntities[key] = val
-        else:
-            comprehendAndMedicalEntities[key].add(val)
-    opg.indexDocument(opg_output[DOCTEXT], comprehendAndMedicalEntities)
+    if 'ES_DOMAIN' in os.environ :
+        for key, val in opg_output[KVPAIRS].items():
+            if key not in comprehendAndMedicalEntities:
+                comprehendAndMedicalEntities[key] = val
+            else:
+                comprehendAndMedicalEntities[key].append(val)
+        opg.indexDocument(opg_output[DOCTEXT], comprehendAndMedicalEntities)
 
     ds = datastore.DocumentStore(documentsTable, outputTable)
     ds.markDocumentComplete(documentId)
@@ -185,7 +188,7 @@ def lambda_handler(event, context):
     request["bucketName"] = message['DocumentLocation']['S3Bucket']
     request["objectName"] = message['DocumentLocation']['S3ObjectName']
     request["outputBucketName"] = os.environ['OUTPUT_BUCKET']
-    request["elasticsearchDomain"] = os.environ['ES_DOMAIN']
+    request["elasticsearchDomain"] = os.environ.get('ES_DOMAIN',None)
     request["outputTable"] = os.environ['OUTPUT_TABLE']
     request["documentsTable"] = os.environ['DOCUMENTS_TABLE']
 

@@ -12,7 +12,6 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-const withSass = require('@zeit/next-sass')
 
 // Environment configs
 const {
@@ -28,7 +27,7 @@ const {
 } = require('dotenv').config()
 
 // Configs passed to next.js
-module.exports = withSass({
+module.exports = {
   publicRuntimeConfig: {
     APIGateway,
     bucket,
@@ -38,9 +37,4 @@ module.exports = withSass({
     userPoolId,
     isROMode
   },
-  cssModules: true,
-  cssLoaderOptions: {
-    importLoaders: 1,
-    localIdentName: '[local]-[hash:base64:5]',
-  },
-})
+}

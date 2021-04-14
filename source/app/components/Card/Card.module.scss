@@ -81,7 +81,7 @@ $card-palettes: (
 
 // Palettes
 @each $palette, $color in $card-palettes {
-  .#{$palette} {
+  .#{"" + $palette} {
     &:focus,
     &:hover {
       border-color: $color;

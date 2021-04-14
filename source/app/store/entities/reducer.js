@@ -13,12 +13,13 @@
  *********************************************************************************************************************/
 
 import { handleActions } from 'redux-actions'
-import { mergeDeepRight } from 'ramda'
+import { view, set, lensPath, mergeDeepRight } from 'ramda'
 
 import {
   FETCH_DOCUMENTS,
   FETCH_DOCUMENT,
   REDACT_DOCUMENT,
+  CLEAR_REDACTION,
   SEARCH,
   CLEAR_SEARCH_RESULTS,
   SET_CURRENT_PAGE_NUMBER,
@@ -29,13 +30,18 @@ import {
   CLEAR_SEARCH_QUERY,
   CLEAR_DOCUMENT_SEARCH_QUERY,
   HIGHLIGHT_DOCUMENT,
-  SET_SEARCH_PERSONA
+  SET_SEARCH_PERSONA,
+  FETCH_GLOBALS,
+  SAVE_REDACTIONS_STARTED,
+  REDACTIONS_SAVED
 } from '../../constants/action-types'
 
 import documents from './documents/data'
 import tracks from './tracks/data'
 import meta from './meta/data'
 import sampleDocuments from './sampleDocuments/data'
+import exclusionLists from './exclusionLists/data'
+import redactionLabels from './redactionLabels/data'
 
 export function receiveEntities(state, { payload }) {
   return payload ? mergeDeepRight(state, payload) : state
@@ -45,9 +51,16 @@ export default handleActions(
   {
     [FETCH_DOCUMENT]: receiveEntities,
     [FETCH_DOCUMENTS]: receiveEntities,
-    [REDACT_DOCUMENT]: receiveEntities,
+    [REDACT_DOCUMENT]: (state, action) => ({
+      ...receiveEntities(state, action),
+      areUnsavedRedactions: true,
+    }),
+    [CLEAR_REDACTION]: (state, { payload: { documentId, pageNumber, redactions } }) => ({
+      ...state,
+      documents: set(lensPath([documentId, 'redactions', pageNumber]), redactions, state.documents),
+      areUnsavedRedactions: true,
+    }),
     [HIGHLIGHT_DOCUMENT]: receiveEntities,
-    [SEARCH]: receiveEntities,
     [SEARCH]: receiveEntities,
     [CLEAR_SEARCH_RESULTS]: receiveEntities,
     [SET_CURRENT_PAGE_NUMBER]: receiveEntities,
@@ -58,8 +71,15 @@ export default handleActions(
     [SET_SEARCH_PERSONA]: receiveEntities,
     [CLEAR_SEARCH_QUERY]: receiveEntities,
     [CLEAR_DOCUMENT_SEARCH_QUERY]: receiveEntities,
+    [FETCH_GLOBALS]: (state, { payload: { exclusionLists, redactionLabels } }) => ({
+      ...state,
+      exclusionLists,
+      redactionLabels,
+    }),
+    [SAVE_REDACTIONS_STARTED]: (state) => ({ ...state, isSavingRedactions: true }),
+    [REDACTIONS_SAVED]: (state) => ({ ...state, isSavingRedactions: false, areUnsavedRedactions: false, })
   },
 
   // Initial Data
-  { documents, tracks, meta, sampleDocuments }
+  { documents, tracks, meta, sampleDocuments, exclusionLists, redactionLabels, isSavingRedactions: false, areUnsavedRedactions: false, }
 )

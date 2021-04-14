@@ -22,7 +22,7 @@ import Card from '../components/Card/Card'
 import { setSelectedTrack } from '../store/ui/actions'
 import { getTracks } from '../store/entities/tracks/selectors'
 
-import css from './home.scss'
+import css from './home.module.scss'
 import TrackInfoModal from '../components/TrackInfoModal/TrackInfoModal'
 
 Home.propTypes = {
@@ -56,11 +56,6 @@ function Home({ dispatch, tracks }) {
           <Card {...rest} key={id} icon={<img src={icon} />} onClick={() => handleCardClick(id)} />
         ))}
       </div>
-
-      {/* <p>
-        <img src="/static/images/icon_feature.svg" /> If you see one of these along the way, click
-        on it to learn more about Textract’s features.
-      </p> */}
 
       { showingTrackInfo ?
         <TrackInfoModal

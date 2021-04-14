@@ -14,7 +14,7 @@
 import React, { useState, useCallback } from "react";
 
 import cs from "classnames";
-import styles from "./KendraResultFeedback.scss";
+import styles from "./KendraResultFeedback.module.scss";
 
 function Thumb() {
   return (

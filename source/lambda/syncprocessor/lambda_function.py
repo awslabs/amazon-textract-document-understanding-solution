@@ -106,7 +106,9 @@ def processImage(documentId, features, bucketName, outputBucketName, objectName,
     maxPages = 100
     comprehendClient = ComprehendHelper()
     responseDocumentName = "{}{}response.json".format(outputPath,TEXTRACT_PATH_S3_PREFIX)
-    comprehendAndMedicalEntities = comprehendClient.processComprehend(outputBucketName, responseDocumentName, comprehendOutputPath, maxPages)
+    # comprehend medical entities API will be called only if the flag is set to true during deployment
+    isComprehendMedicalEnabled = True if os.environ['ENABLE_COMPREHEND_MEDICAL']=="true" else False
+    comprehendAndMedicalEntities = comprehendClient.processComprehend(outputBucketName, responseDocumentName, comprehendOutputPath, isComprehendMedicalEnabled, maxPages)
 
     # if Kendra is available then let it index the document
     # index the searchable pdf in Kendra
@@ -124,12 +126,13 @@ def processImage(documentId, features, bucketName, outputBucketName, objectName,
 
     print("Processed Comprehend data for document: {}".format(documentId))
 
-    for key, val in opg_output[KVPAIRS].items():
-        if key not in comprehendAndMedicalEntities:
-            comprehendAndMedicalEntities[key] = val
-        else:
-            comprehendAndMedicalEntities[key].add(val)
-    opg.indexDocument(opg_output[DOCTEXT], comprehendAndMedicalEntities)
+    if 'ES_DOMAIN' in os.environ :
+        for key, val in opg_output[KVPAIRS].items():
+            if key not in comprehendAndMedicalEntities:
+                comprehendAndMedicalEntities[key] = val
+            else:
+                comprehendAndMedicalEntities[key].append(val)
+        opg.indexDocument(opg_output[DOCTEXT], comprehendAndMedicalEntities)
 
     ds = datastore.DocumentStore(documentsTableName, outputTableName)
     ds.markDocumentComplete(documentId)

@@ -29,7 +29,7 @@ import {
 } from '../../utils/dus-constants'
 
 
-import css from './EntitiesCheckbox.scss'
+import css from './EntitiesCheckbox.module.scss'
 
 export default function EntitiesCheckbox({
   entities,
@@ -50,11 +50,8 @@ export default function EntitiesCheckbox({
 
   useEffect(() => {
     if (visible && container.current) {
-      const firstOnThisPage = container.current.querySelector(`.${css.onThisPage}`)
-      if (firstOnThisPage) firstOnThisPage.scrollIntoView()
-      onHighlight(getMultiPageWordsBySearch(document, currentPageNumber, ['']))
+      onHighlight(getMultiPageWordsBySearch(document, currentPageNumber, []))
       resetFormsonPage()
-
     }
   }, [currentPageNumber, visible])
   let is_comprehend_medical = false
@@ -81,49 +78,49 @@ export default function EntitiesCheckbox({
                   pairs[0].pageNumber === currentPageNumber && css.onThisPage
                 )}
               >
-                 Page {pairs[0].pageNumber}
+                Page {pairs[0].pageNumber}
               </li>
             ) : null}      
             <form id ={(`${comprehendService}-${i}-form`)}>
-            {pairs.map(({ id,  entity, value , pageNumber }, i) => (
-              <li
-                key={i}
-                className={cs(
-                  css.ev,
-                  pageNumber === currentPageNumber && css.onThisPage,
-                  showRedaction && css.hasRedact
-                )}
-                > 
-              <input id={entity} name="entityChoice" type="radio"  onClick={e => {
-                  e.stopPropagation()
-                  onSwitchPage(pageNumber)
-                  onHighlight(getMultiPageWordsBySearch(document, pageNumber, value),pageNumber)
-                }
-              }/> <label for={entity}>{entity}</label>
+            {pairs.map(({ entity, value , pageNumber }, i) => {
+              const id = `${entity}-${pageNumber}`
 
-                {
-                showRedaction ? (
-                  <span className = {css.redactSpan}>
-                  <a
-                    title="Redact Entity Matches"
-                    className={css.valueRedact}
-                    onClick={e => {
-                      e.stopPropagation()
-                      onRedact(pageNumber , getMultiPageWordsBySearch(document, pageNumber, value))
-                      onSwitchPage(pageNumber)
-                    }}
-                  >
-                    Redact
-                  </a></span>
-                ) : null}
-               
-               </li>
+              return (
+                <li
+                  key={id}
+                  className={cs(
+                    css.ev,
+                    pageNumber === currentPageNumber && css.onThisPage,
+                    showRedaction && css.hasRedact
+                  )}
+                  > 
+                <input id={id} name="entityChoice" type="radio"  onClick={e => {
+                    e.stopPropagation()
+                    onSwitchPage(pageNumber)
+                    onHighlight(getMultiPageWordsBySearch(document, pageNumber, value),pageNumber)
+                  }
+                }/> <label htmlFor={id}>{entity}</label>
   
-            ))}</form>
-
-           
-           
-
+                  {
+                  showRedaction ? (
+                    <span className = {css.redactSpan}>
+                    <a
+                      title="Redact Entity Matches"
+                      className={css.valueRedact}
+                      onClick={e => {
+                        e.stopPropagation()
+                        onRedact(pageNumber , getMultiPageWordsBySearch(document, pageNumber, value))
+                        onSwitchPage(pageNumber)
+                      }}
+                    >
+                      Redact All
+                    </a></span>
+                  ) : null}
+                </li>
+    
+              )
+            })}
+            </form>
           </Fragment>
         ))}
       </ul>

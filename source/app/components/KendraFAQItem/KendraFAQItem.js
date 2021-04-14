@@ -15,7 +15,7 @@ import React, { useMemo, useState, useCallback } from "react";
 import KendraHighlightedText from "../KendraHighlightedText/KendraHighlightedText";
 import KendraResultFooter from "../KendraResultFooter/KendraResultFooter";
 
-import css from "./KendraFAQItem.scss";
+import css from "./KendraFAQItem.module.scss";
 import cs from "classnames";
 
 export default function KendraFAQItem({ item, submitFeedback }) {
